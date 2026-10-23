@@ -1,0 +1,21 @@
+chunk_size: 512
+chunk_overlap: 64
+separators: ["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]
+pdf_margin_lines: 2
+pdf_repeat_ratio: 0.6
+raw_dir: data/raw
+registry: data/registry/documents.csv
+index_dir: data/index
+domain_dictionary: data/dict/domain_terms.txt
+embedding:
+  model: models/bge-large-zh-v1.5
+  revision: 79e7739b6ab944e86d6171e44d24c997fc1e0116
+  dimensions: 1024
+  normalize: true
+  batch_size: 32
+  device: cpu
+chroma:
+  space: cosine
+  ef_construction: 200
+  ef_search: 100
+  max_neighbors: 16

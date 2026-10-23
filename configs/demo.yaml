@@ -1,0 +1,16 @@
+model_repository: mlx-community/Qwen3-4B-Instruct-2507-4bit
+model_revision: 50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b
+model_path: models/Qwen3-4B-Instruct-2507-4bit
+model_port: 8081
+web_port: 8765
+retrieval:
+  prefer_exact_section: true
+llm:
+  base_url: http://127.0.0.1:8081/v1
+  api_key: local-demo
+  model: models/Qwen3-4B-Instruct-2507-4bit
+  temperature: 0
+  seed: 42
+  max_tokens: 1200
+  timeout: 180
+  max_retries: 0

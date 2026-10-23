@@ -1,0 +1,18 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      LANGSMITH_TRACING: 'false'
+      RAGAS_DO_NOT_TRACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+      - run: uv sync --locked --extra eval
+      - run: uv run --no-sync python -c "import ragas"
+      - run: uv run --no-sync ruff check src scripts tests
+      - run: uv run --no-sync ruff format --check src scripts tests
+      - run: uv run --no-sync pytest -q

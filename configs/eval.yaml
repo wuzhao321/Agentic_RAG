@@ -1,0 +1,23 @@
+seed: 42
+tune_fraction: 0.8
+tune_path: data/eval/qa_tune.jsonl
+holdout_path: data/eval/qa_holdout.jsonl
+runs_dir: data/eval/runs
+bootstrap_samples: 1000
+frozen_path: data/eval/frozen.json
+ragas:
+  timeout: 180
+  max_retries: 2
+  max_workers: 1
+  answer_relevancy_strictness: 3
+no_answer_type: 无答案类
+grid:
+  recall_top_n: [10, 20, 30]
+  rrf_k: [30, 60, 100]
+  use_query_prefix: [false, true]
+agent_tasks_path: data/eval/agent_tasks_40.jsonl
+agent_retest_path: data/eval/agent_tasks_retest_20.jsonl
+targets:
+  faithfulness: 0.79
+  answer_relevancy: 0.81
+  context_recall: 0.74

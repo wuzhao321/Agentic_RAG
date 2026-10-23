@@ -1,0 +1,13 @@
+recursion_limit: 8
+summarize_trigger_tokens: 3000
+keep_last_turns: 4
+summary_batch_chars: 6000
+checkpoint_path: data/sessions/agent.sqlite
+ledger_path: data/ledger/projects.json
+project_match_score: 80
+llm:
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  temperature: 0
+  seed: 42
+  timeout: 60
+  max_retries: 2
