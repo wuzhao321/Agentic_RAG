@@ -25,7 +25,7 @@ def load_pdf(path: Path, margin_lines: int, repeat_ratio: float) -> ParsedDocume
         }
         for i, page in enumerate(doc):
             if not page.get_text().strip():
-                result.warnings.append(f"第 {i + 1} 页无文本层；本期不做 OCR")
+                result.warnings.append(f"第 {i + 1} 页无文本层；未启用 OCR")
                 continue
             tables = list(page.find_tables().tables)
             items = []

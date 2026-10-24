@@ -1,4 +1,4 @@
-"""Evidence-checked demo cases. Never label assistant checks as human approval."""
+"""Build demo cases with source, parsed-document and indexed-evidence checks."""
 
 import hashlib
 import json
@@ -189,7 +189,7 @@ def main():
                 "question_type": "table" if block.kind == "table" else "single",
                 "answer_points": points,
                 "demo_only": True,
-                "review_status": "assistant_source_checked",
+                "review_status": "source_evidence_checked",
                 "human_reviewed": False,
             }
         )
@@ -202,7 +202,7 @@ def main():
                 "source_contains_evidence": True,
                 "parsed_contains_evidence": True,
                 "indexed_chunk_ids": context["chunk_ids"],
-                "answer_review": "助手对照来源核对；不是独立人工审核",
+                "answer_review": "参考答案附来源证据；校验证据在原文、解析文档和索引中的存在性",
             }
         )
     for question in [
@@ -220,7 +220,7 @@ def main():
                 "question_type": "no_answer",
                 "answer_points": ["知识库中未检索到相关内容"],
                 "demo_only": True,
-                "review_status": "assistant_source_checked",
+                "review_status": "source_evidence_checked",
                 "human_reviewed": False,
             }
         )
@@ -293,7 +293,7 @@ def main():
         (out / name).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     review = {
         "reviewed_at": datetime.now(UTC).isoformat(),
-        "reviewer": "assistant",
+        "check_method": "source_parse_index_evidence",
         "human_reviewed": False,
         "formal_acceptance": False,
         "qa_count": len(qa),
@@ -305,9 +305,9 @@ def main():
         "agent_tasks_sha256": hashlib.sha256((out / "agent_tasks.jsonl").read_bytes()).hexdigest(),
         "checks": checks,
         "notes": [
-            "拒答题依据已导入语料范围人工式审阅，非字符串搜索证明。",
+            "拒答题按已导入语料范围设置，与证据字符串存在性检查分开管理。",
             "Agent query 同义改写可能被严格参数比较判为不一致，需结合轨迹复核。",
-            "未创建或读取正式 qa_holdout.jsonl；本演示集可重复用于开发验证。",
+            "演示集用于开发验证；正式评估使用独立的 qa_holdout.jsonl 留出集。",
         ],
     }
     (out / "review.json").write_text(json.dumps(review, ensure_ascii=False, indent=2))

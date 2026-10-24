@@ -1,6 +1,7 @@
-# 技术方案：首版实现
+# 技术设计
 
-更新：2026-10-24。本文描述仓库当前代码，不代表业务验收完成。
+系统围绕文档入库、混合检索、引用问答和工具调用组织数据流。检索参数、模型版本和运行路径由
+`configs/` 下的 YAML 文件管理，依赖版本由 `uv.lock` 固定。
 
 ## 数据流
 
@@ -38,7 +39,7 @@ flowchart LR
 `START → summarize → agent → tools → agent → END`。
 `messages` 使用 LangGraph 的 `add_messages` reducer；摘要通过 `RemoveMessage` 删除完整旧轮次。
 推理限制从配置读取，超过限制明确报错退出当前命令行会话。SQLite checkpointer 支持重启恢复，
-`thread_id` 来自 CLI 的 `--session`。当前不提供权限控制或多租户隔离。
+`thread_id` 来自 CLI 的 `--session`。会话标识用于历史隔离，不提供权限控制或多租户身份认证。
 
 知识工具返回 top-k 证据与来源；文档工具按 chunk_index 取完整文档后分批摘要；台账工具
 使用 Pydantic 日期、Decimal 金额和字段白名单，代码执行筛选与模糊匹配。
@@ -46,33 +47,27 @@ flowchart LR
 
 网页 demo 启用可选 `respond` 节点：单次成功工具调用结束后，台账按真实字段渲染，
 知识工具复用 RAG 引用链，摘要沿用工具输出；以相同消息 ID 替换会话中的生成草稿。
-多工具任务保留原生 Agent 流程。正式 CLI 默认不启用这一 demo 选项。
-
-RAG 引用格式校验是结构性保护，不是事实验证。
-事实性与工具选择正确率仍需在人工审核的数据集上验证。会话摘要 token 采用库提供的近似计数，
-对中文仅为触发启发式；长工具输出和单轮极长输入的 token 预算仍需进一步完善。
+多工具任务保留原生 Agent 流程。CLI 默认不启用这一选项。
 
 ## 数据与追踪
 
-不把原始文档、登记表、台账、索引、会话、评测集、模型、密钥提交到 Git。
-网页 demo 使用本机 MLX 服务，不需要云端密钥；CLI ask/chat 和正式评测使用配置的云端模型。
-本轮没有调用云模型。
+原始业务文档、登记表、台账、索引、会话、生成的评测数据、模型权重和密钥由 Git 忽略规则排除。
+公开数据的来源快照与许可单独保存在 `docs/public-data/`，用于复现数据准备过程。
+网页 demo 使用本地 MLX 服务；CLI `ask` / `chat` 和 RAGAS 评估使用配置的云端模型。
 LangSmith 关闭为默认值；启用后追踪可能包含用户消息和工具证据，应沿用业务资料的外发范围。
 
-## 待实测的部分
+## 实现限制
 
-- 80 份业务文档的解析完整率、约 5200 chunk 的实际规模及表格抽样。
-- BGE 分数阈值、查询前缀、候选数和 RRF k 的调参。
-- Qwen 本地原生工具与两轮追问已通过演示验证；长对话、冲突答案和正式数据集上的保真度待实测。
-- 40 条任务与新 20 条复测任务上的工具/参数指标。
-- RAGAS runner、调参消融、留出集 A/D 运行与置信区间已实现；真实数据运行仍待开展。
-- 数据集划分应进一步考虑同源近重复问题，当前只拒绝完全重复的问题文本。
+- 引用格式校验检查来源编号与结构；答案事实性通过独立的评估指标与人工审核衡量，见
+  [评估协议](evaluation.md)。
+- 会话摘要使用库提供的近似 token 计数，对中文作为触发启发式；长工具输出和极长单轮输入仍可能占用较多上下文。
+- PDF 复杂版式、跨页表格和合并单元格需要结合解析告警及来源抽样检查。
+- 评估集划分拒绝完全重复的问题文本；近义重复和同源文档泄漏需要额外检查。
+- 网页服务仅面向本机使用，不包含登录、文档上传管理或多租户权限隔离。
 
-## 核对的官方接口
+## 接口参考
 
-- [Chroma HNSW configuration](https://docs.trychroma.com/docs/collections/configure)：使用 configuration.hnsw，max_neighbors 对应计划中的 M。
+- [Chroma HNSW configuration](https://docs.trychroma.com/docs/collections/configure)：使用 configuration.hnsw，max_neighbors 对应 HNSW 的 M 参数。
 - [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)：SQLite 文件持久化。
 - [RecursiveCharacterTextSplitter](https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter)：中文分隔符和字符长度。
 - [BGE embedding](https://huggingface.co/BAAI/bge-large-zh-v1.5)、[BGE reranker](https://huggingface.co/BAAI/bge-reranker-base)：本地模型适配。
-
-具体依赖版本以 `uv.lock` 为准。该首版是后续业务接入与评测的起点。

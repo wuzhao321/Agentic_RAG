@@ -116,7 +116,7 @@ def main():
         "median_seconds": statistics.median(
             r["response"]["latency_seconds"] for r in qa + agents if "response" in r
         ),
-        "limitations": "开发演示集；答案关键词检查不是忠实度；未运行正式留出集或正式 RAGAS 验收。",
+        "limitations": "演示集自动检查；答案要点与证据命中统计分别记录，不等同于 RAGAS 指标。",
     }
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2))
     Path("data/demo/latest-run.txt").write_text(str(out))

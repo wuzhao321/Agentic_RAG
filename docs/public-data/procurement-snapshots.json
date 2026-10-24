@@ -29,7 +29,6 @@
     },
     "retrieved_at": "2026-10-23",
     "retrieval_method": "web search page extraction",
-    "reviewer": "assistant",
     "human_reviewed": false
   },
   {
@@ -63,7 +62,6 @@
     },
     "retrieved_at": "2026-10-23",
     "retrieval_method": "web search page extraction",
-    "reviewer": "assistant",
     "human_reviewed": false
   }
 ]

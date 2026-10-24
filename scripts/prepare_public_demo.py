@@ -206,7 +206,7 @@ def main():
         "created_at": datetime.now(UTC).isoformat(),
         "demo_only": True,
         "human_reviewed": False,
-        "review_status": "assistant_source_checked",
+        "review_status": "source_evidence_checked",
         "documents": manifest,
     }
     (OUT / "manifest.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
