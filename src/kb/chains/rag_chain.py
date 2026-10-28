@@ -49,14 +49,18 @@ class RagChain:
             }
             for i, h in enumerate(hits, 1)
         ]
-        return self.answer_sources(question, sources, query)
+        # Generation must use the resolved question too: the original pronoun has no
+        # conversational context in this evidence-only prompt.
+        return self.answer_sources(query, sources, query)
 
     def answer_sources(self, question: str, sources: list[dict], query: str | None = None) -> dict:
         """Answer already-retrieved tool evidence using the same citation contract."""
         query = query or question
         # Retain the retrieved context even if the generated answer is refused.
         # Otherwise evaluation incorrectly reports a retrieval miss after a generation failure.
-        contexts = [source["text"] for source in sources]
+        # The judge must receive the same evidence as generation, including source
+        # labels. Otherwise valid document/page attribution looks unsupported.
+        contexts = [f"[{s['id']}] {s['source']}\n{s['text']}" for s in sources]
         if not sources:
             return {
                 "answer": NO_ANSWER,
@@ -64,7 +68,7 @@ class RagChain:
                 "query": query,
                 "retrieved_contexts": contexts,
             }
-        context = "\n\n".join(f"[{s['id']}] {s['source']}\n{s['text']}" for s in sources)
+        context = "\n\n".join(contexts)
         answer = self.chain.invoke({"question": question, "context": context})
         cited = set(re.findall(r"\[(S\d+)\]", answer))
         valid = {s["id"] for s in sources}

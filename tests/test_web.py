@@ -91,3 +91,28 @@ def test_public_ledger_retains_source_with_selected_fields():
             "source_url": "https://example.org/public",
         }
     ]
+
+
+def test_review_page_uses_content_hashes_instead_of_allowing_inline_scripts(tmp_path, monkeypatch):
+    import base64
+    import hashlib
+
+    monkeypatch.chdir(tmp_path)
+    from pathlib import Path
+
+    page = Path("data/review/public-v1/review.html")
+    page.parent.mkdir(parents=True)
+    page.write_text("<style>body{color:black}</style><script>const x=1;</script>")
+    handler = object.__new__(handler_class(None))
+    handler.path = "/review"
+    handler.server = SimpleNamespace(server_port=8765)
+    handler.headers = Message()
+    handler.headers["Host"] = "127.0.0.1:8765"
+    responses = []
+    handler.send_body = lambda *args: responses.append(args)
+    handler.do_GET()
+    assert responses[0][0] == 200
+    policy = responses[0][3]
+    expected = base64.b64encode(hashlib.sha256(b"const x=1;").digest()).decode()
+    assert f"'sha256-{expected}'" in policy
+    assert "unsafe-inline" not in policy and "default-src 'none'" in policy

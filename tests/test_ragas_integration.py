@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -10,6 +11,8 @@ os.environ["RAGAS_DO_NOT_TRACK"] = "true"
 pytest.importorskip("ragas")
 
 from kb.eval.ragas_runner import BgeEmbeddings, RagasScorer  # noqa: E402
+
+seen_loops = []
 
 
 class SyntheticJudge(FakeListLLM):
@@ -37,6 +40,7 @@ class SyntheticJudge(FakeListLLM):
         return json.dumps({"statements": ["超时为 3000 毫秒"]})
 
     async def _acall(self, prompt, stop=None, run_manager=None, **kwargs):
+        seen_loops.append(asyncio.get_running_loop())
         return self._call(prompt, stop, run_manager, **kwargs)
 
 
@@ -66,3 +70,22 @@ def test_local_embedding_adapter():
     adapter = BgeEmbeddings(SyntheticEmbedding())
     assert adapter.embed_query("a") == [1.0, 0.0]
     assert len(adapter.embed_documents(["a", "b"])) == 2
+
+
+def test_repeated_scores_share_live_event_loop_and_close_it(monkeypatch):
+    monkeypatch.setenv("LANGSMITH_TRACING", "false")
+    seen_loops.clear()
+    row = {
+        "question": "接口超时是多少？",
+        "answer": "超时为 3000 毫秒",
+        "retrieved_contexts": ["接口超时为 3000 毫秒"],
+        "reference_answer": "3000 毫秒",
+    }
+    with RagasScorer(
+        SyntheticJudge(responses=[]), SyntheticEmbedding(), load_config("eval")
+    ) as scorer:
+        for _ in range(3):
+            assert scorer.score(row)["faithfulness"] == 1.0
+        assert seen_loops and len({id(loop) for loop in seen_loops}) == 1
+        assert not seen_loops[0].is_closed()
+    assert seen_loops[0].is_closed()

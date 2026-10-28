@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from langchain_core.embeddings import Embeddings
@@ -24,6 +25,8 @@ class RagasScorer:
         from ragas.metrics import Faithfulness, LLMContextRecall, ResponseRelevancy
         from ragas.run_config import RunConfig
 
+        self._runner = asyncio.Runner()
+        self._model = llm
         cfg = config["ragas"]
         self.run_config = RunConfig(
             timeout=cfg["timeout"],
@@ -47,7 +50,8 @@ class RagasScorer:
         ]
 
     def score(self, row: dict) -> dict:
-        from ragas import EvaluationDataset, evaluate
+        from ragas import EvaluationDataset
+        from ragas.evaluation import aevaluate
 
         dataset = EvaluationDataset.from_list(
             [
@@ -59,13 +63,30 @@ class RagasScorer:
                 }
             ]
         )
-        result = evaluate(
-            dataset,
-            metrics=self.metrics,
-            llm=self.llm,
-            embeddings=self.embeddings,
-            run_config=self.run_config,
-            show_progress=False,
-            raise_exceptions=True,
+        # Keep HTTP connection pools on one event loop across all rows.
+        result = self._runner.run(
+            aevaluate(
+                dataset,
+                metrics=self.metrics,
+                llm=self.llm,
+                embeddings=self.embeddings,
+                run_config=self.run_config,
+                show_progress=False,
+                raise_exceptions=True,
+            )
         )
         return result.scores[0]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def close(self):
+        client = getattr(self._model, "root_async_client", None)
+        try:
+            if client is not None and not client.is_closed():
+                self._runner.run(client.close())
+        finally:
+            self._runner.close()

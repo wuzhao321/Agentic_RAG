@@ -209,6 +209,11 @@ def main():
         "review_status": "source_evidence_checked",
         "documents": manifest,
     }
+    if (OUT / "manifest.json").exists():
+        previous = json.loads((OUT / "manifest.json").read_text())
+        result["documents"].extend(
+            d for d in previous["documents"] if not d["file_name"].startswith("public_demo/")
+        )
     (OUT / "manifest.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
     print(
         json.dumps(

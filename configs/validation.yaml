@@ -1,0 +1,34 @@
+# Local development experiments only. Never aliases the formal holdout.
+qa_path: data/demo/qa.jsonl
+runs_dir: data/demo/validation
+llm:
+  max_tokens: 4096
+  timeout: 240
+  max_retries: 0
+ragas:
+  timeout: 240
+  max_retries: 0
+  max_workers: 1
+conversation_questions:
+  - '本轮关注项目是海口市AI+数字内容生产服务。请说明它的金额、供应商和合同签订日期，并记住本轮关注项目。'
+  - '总结 public_demo/FastAPI-请求体.docx 的主要内容，保留参数示例和关键约束。'
+  - '总结 public_demo/FastAPI-查询参数.docx 的主要内容，重点讲必选、可选、默认值和类型转换。'
+  - '总结 public_demo/FastAPI-响应模型.docx 的主要内容，重点讲校验、过滤和优先级。'
+  - '总结 public_demo/FastAPI-错误处理.docx 的主要内容，保留异常类型和处理方式。'
+  - '总结 public_demo/浙江税务GPU算力采购公告.pdf 的主要内容，保留公开金额、编号和日期。'
+  - 'FastAPI 的路径参数和查询参数有什么区别？给出文档中的例子。'
+  - 'FastAPI 的 response_model 有什么作用，怎样禁用？'
+  - 'FastAPI 的 HTTPException 和 RequestValidationError 分别怎样处理？'
+  - 'FastAPI 怎样声明请求体，请列出主要步骤。'
+  - 'FastAPI 枚举路径参数怎样定义及取值？'
+  - '回到本轮最初关注的项目：它的合同金额、供应商和签订日期是什么？'
+
+# Real public-document notes make the conversation exceed the production threshold.
+conversation_contexts:
+  2: data/public_sources/body.md
+  3: data/public_sources/query-params.md
+  4: data/public_sources/response-model.md
+conversation_final_points:
+  - ['2861000', '286.1']
+  - ['北京昆仑联通科技发展股份有限公司']
+  - ['2026-04-10', '2026年4月10日', '2026年04月10日']

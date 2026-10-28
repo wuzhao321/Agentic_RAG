@@ -13,12 +13,43 @@ from kb.retrieval.reranker import Reranker
 from kb.retrieval.vector import LocalEmbedding, VectorIndex, open_collection
 
 
+def llm_settings(config, env=None, *, require_key=True):
+    """Resolve a provider explicitly; never send one provider's key to another endpoint."""
+    env = os.environ if env is None else env
+    provider = env.get("LLM_PROVIDER") or config.get("provider", "dashscope")
+    providers = config.get("providers", {})
+    if provider not in providers:
+        raise ValueError(f"未配置模型供应商：{provider}")
+    profile = providers[provider]
+    key, model = env.get(profile["key_env"]), env.get(profile["model_env"])
+    if not model or (require_key and not key):
+        raise ValueError(f"请在本地 .env 填写 {profile['key_env']} 和 {profile['model_env']}")
+    params = {
+        **config["llm"],
+        **profile.get("parameters", {}),
+        "base_url": profile["base_url"],
+        "model": model,
+    }
+    if provider == "deepseek":
+        # The documented DeepSeek Chat Completions schema has no seed parameter.
+        params.pop("seed", None)
+    return provider, key, params
+
+
+def llm_identity(config, env=None):
+    provider, _, params = llm_settings(config, env, require_key=False)
+    return {
+        "provider": provider,
+        "parameters": params,
+        "documented_version": config["providers"][provider].get("documented_version"),
+        "immutable_model_version": False,
+    }
+
+
 def make_llm(config):
     load_dotenv()
-    key, model = os.getenv("DASHSCOPE_API_KEY"), os.getenv("QWEN_MODEL")
-    if not key or not model:
-        raise ValueError("请在 .env 中填写 DASHSCOPE_API_KEY 和锁定版本的 QWEN_MODEL")
-    return ChatOpenAI(api_key=key, model=model, **config["llm"])
+    _, key, params = llm_settings(config)
+    return ChatOpenAI(api_key=key, **params)
 
 
 def make_retrieval(root: Path = Path("."), retrieval_config: dict | None = None):

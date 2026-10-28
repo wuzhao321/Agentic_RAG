@@ -18,7 +18,7 @@ flowchart LR
     E --> H[RRF]
     G --> H
     H --> I[BGE reranker]
-    I --> J[LCEL + Qwen 本地或云端]
+    I --> J[LCEL + DeepSeek 云端或 Qwen 本地]
     J --> K[答案与来源校验]
 ```
 
@@ -53,7 +53,7 @@ flowchart LR
 
 原始业务文档、登记表、台账、索引、会话、生成的评测数据、模型权重和密钥由 Git 忽略规则排除。
 公开数据的来源快照与许可单独保存在 `docs/public-data/`，用于复现数据准备过程。
-网页 demo 使用本地 MLX 服务；CLI `ask` / `chat` 和 RAGAS 评估使用配置的云端模型。
+网页 demo 默认使用本地 MLX 服务，`kb demo-web --cloud` 使用配置的 DeepSeek；CLI `ask` / `chat` 和 RAGAS 评估使用配置的云端模型。
 LangSmith 关闭为默认值；启用后追踪可能包含用户消息和工具证据，应沿用业务资料的外发范围。
 
 ## 实现限制

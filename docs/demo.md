@@ -2,11 +2,14 @@
 
 ## 运行方式
 
-网页工作台使用 MLX 运行 Qwen3-4B-Instruct-2507 的 4-bit 权重，适用于 Apple Silicon。
-BGE embedding 和 reranker 在 CPU 上运行。网页默认监听 `127.0.0.1:8765`，模型服务监听
-`127.0.0.1:8081`；模型版本和端口见 `configs/demo.yaml`。
+网页工作台支持 DeepSeek 云端模式和本地 Qwen 模式。已配置 DeepSeek 的项目使用
+`uv run --no-sync kb demo-web --cloud` 启动，BGE embedding 和 reranker 仍在本机 CPU 上运行。
+本地模式使用 MLX 运行 Qwen3-4B-Instruct-2507 的 4-bit 权重，适用于 Apple Silicon。
+网页默认监听 `127.0.0.1:8765`，本地生成模型服务监听 `127.0.0.1:8081`；
+模型版本和端口见 `configs/demo.yaml`。
 
-知识问答使用单轮上下文，Agent 支持同一会话的多轮追问，会话保存在 `data/sessions/demo.sqlite`。
+知识问答和 Agent 均支持同一会话的多轮追问，分别保存上下文，互不混用。会话保存在 `data/sessions/demo.sqlite`。
+知识问答先结合历史改写检索问题，再以独立问题和证据生成答案；历史超长时沿用 Agent 的摘要策略。
 请求串行处理，并发请求返回忙状态。服务仅提供本地访问，不包含登录或多租户权限控制。
 
 ## 安装与启动
@@ -80,3 +83,29 @@ uv run --no-sync python scripts/check_demo.py
 
 答案要点、参考片段命中、工具选择和严格参数匹配分别统计；字符串匹配与证据命中不等同于
 RAGAS 忠实度或人工任务完成率。详细指标和数据划分方式见 [评估协议](evaluation.md)。
+
+## 使用 DeepSeek 演示
+
+填写根目录 `.env` 后运行：
+
+```bash
+uv run --no-sync kb demo-web --cloud
+```
+
+浏览器打开 `http://127.0.0.1:8765`。检索模型在本机运行，问题和相关公开证据发往配置的云端模型；无需启动 MLX。
+云端与本地模式使用不同的会话库。启动时检查索引和台账属于公开来源清单；切换模式前先停止旧服务。
+
+## 扩展公开语料与审核
+
+```bash
+uv run --no-sync python scripts/prepare_extended_public.py
+uv run --no-sync python scripts/prepare_review_tasks.py
+uv run --no-sync kb ingest
+```
+
+扩展后共 80 份转换文档：48 篇独立 FastAPI 教程、2 份采购公告、单一 Kubernetes OpenAPI 规范中的 30 个对象定义。
+后者不能称为 30 份独立原始规范。保留完整原始 JSON、版本、许可证和转换说明。
+`data/review/public-v1/review.html` 提供 200 条候选 QA 的逐条审核与导出；20 个表格解析对照、40+20 Agent 候选任务同目录保存。
+网页服务运行时可直接打开 `http://127.0.0.1:8765/review`。审核者逐条检查来源后填写本人姓名，
+批准或驳回并导出审核 JSON；使用 `scripts/import_qa_reviews.py` 导入，全部有效批准后才能进入正式划分。
+这些是待审核材料，生成脚本不会创建正式调参集或留出集。

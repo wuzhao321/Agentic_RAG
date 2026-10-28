@@ -45,7 +45,16 @@ Linux/Windows 的 PyTorch 使用 CPU 包源，macOS 使用标准 PyTorch 包；�
 
 ## 知识问答与 Agent
 
-复制 `.env.example` 为 `.env`，设置 `DASHSCOPE_API_KEY` 和具体的 `QWEN_MODEL` 版本。
+首次使用时复制 `.env.example` 为 `.env`（已有文件不要覆盖），填写：
+
+```dotenv
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=你的实际密钥
+DEEPSEEK_MODEL=deepseek-flash
+```
+
+保存后重启正在运行的命令或服务即可生效。不要把密钥写入源码或提交到 Git。
+如需切换 DashScope，设置 `LLM_PROVIDER=dashscope` 并填写相应密钥和模型名。
 凭据文件由 Git 忽略。云端命令将问题和相关证据发送到配置的模型接口。
 
 ```bash

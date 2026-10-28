@@ -25,7 +25,7 @@ kb eval-rag --grid
 建议配置按三项指标等权均值排序，只比较有效样本完整覆盖的配置，不自动改写 YAML；还应结合拒答、延迟和失败案例选择。
 
 RAGAS 使用 Faithfulness、ResponseRelevancy（字段 answer_relevancy）、LLMContextRecall。
-生成和裁判共用具体版本的 Qwen，包装器不改变 temperature=0，也不把客户端 n 改成多候选。
+生成和裁判共用配置选择的模型（当前默认 DeepSeek），包装器不改变 temperature=0，也不把客户端 n 改成多候选。
 裁判 embedding 使用本地 BGE，RAGAS 遥测关闭。固定 0.3.9 与兼容的 Community 版本；
 LangChain wrapper 已有弃用提示，后续升级须重跑集成测试。
 
@@ -36,6 +36,8 @@ LangChain wrapper 已有弃用提示，后续升级须重跑集成测试。
 - 生成/评分失败保留 null 与错误类别；未覆盖全部可回答样本时不判断指标达标。
 - 无答案题生成失败仍保留在拒答率分母中，按失败计。
 - 引用校验导致拒答时仍保留实际检索上下文，以区别检索和生成失败。
+- 裁判上下文包含生成时使用的来源编号、文档/章节标签和正文，逐字保持一致；
+  旧版仅传正文的开发报告保留，不能与此口径直接合并。
 - 跨配置和跨数据集比较使用相同的样本范围、失败处理规则与指标定义。
 
 ## 最终评估
@@ -45,7 +47,7 @@ kb freeze-eval
 kb eval-rag --final
 ```
 
-冻结四份配置、Qwen 模型名、BGE revision、代码和 uv.lock 哈希、调参集哈希、领域词典哈希与索引 fingerprint。
+冻结四份配置、模型供应商与模型名、BGE revision、代码和 uv.lock 哈希、调参集哈希、领域词典哈希与索引 fingerprint。
 冻结不读取留出集，冻结文件只写一次。最终运行前逐项比对，发生变化即拒绝。
 
 `holdout-final.lock` 位于留出集真实路径旁边，先创建锁再读取文件；同次运行 A/D。
@@ -97,3 +99,68 @@ id 可省略并按问题生成。工具名、参数列表必须对应，预期�
 
 自动化测试使用临时合成数据和结构化模型替身，RAGAS 库负责解析和计算，覆盖评估控制流、
 指标适配和结果保存。模型效果评估通过上述运行命令执行，独立保存数据、配置与实际模型输出。
+
+## 公开开发集检查
+
+以下命令只使用 `data/demo` 开发数据，不读取正式留出集：
+
+```bash
+python scripts/smoke_cloud.py
+kb validate-local --suite retrieval
+kb validate-cloud --suite ragas
+kb validate-cloud --suite conversation
+kb validate-cloud --suite agent
+```
+
+云端检查使用 `.env` 中的供应商凭据，运行产物存入 `data/demo/cloud-runs/`。
+检索检查覆盖 A–D、18 组网格和演示配置，保存在 `data/demo/validation/`；
+参考片段命中率与 RAGAS 指标分别报告。开发集未经人工审核，结果不用于正式验收。
+RAGAS 在同一事件循环中复用异步客户端，避免逐题评分后关闭循环导致连接失效。
+
+## 公开候选集的人工审核
+
+运行 `scripts/prepare_extended_public.py` 生成候选集，按需运行
+`scripts/refine_public_qa.py` 用配置模型细化概念题，并逐字校验答案出处。
+然后运行 `scripts/prepare_review_tasks.py` 更新审核页面和 Agent 候选任务。
+再次运行原始数据生成脚本会重建候选题，因此应在人工审核开始前完成数据准备。
+
+用浏览器打开 `data/review/public-v1/review.html`，逐题检查并导出 `qa-reviews.json`。
+审核内容包括问题明确性、答案正确性、证据充分性、题型、重复题、同源题与无答案判定。
+页面保存审批和备注；需要改题时先修改候选 JSONL，再生成页面并重新审核该版本。
+未经审核不能把“来源逐字匹配”写成“业务审核通过”。
+
+全部 200 题批准且填写审核人后：
+
+```bash
+uv run --no-sync python scripts/import_qa_reviews.py /实际路径/qa-reviews.json
+uv run --no-sync kb split-eval data/eval/qa_all.jsonl
+```
+
+导入器核对候选文件哈希、全部审核 ID、逐条批准和题型配额，并保留审核记录。
+它不自动划分数据；任何驳回、缺项或哈希变化都会阻止导入，不会覆盖已有正式数据。
+正式留出仍遵循前述冻结与一次性运行协议。
+
+`agent_baseline_40.jsonl` 与 `agent_retest_20.jsonl` 为互不重复的候选任务，尚非人工验收集。
+可先运行 `kb validate-cloud --suite agent_baseline` 和 `--suite agent_retest` 做开发验证。
+工具参数按严格规范化相等比较；同义检索词和项目简称也可能被标记不一致，应结合人工审核解释，
+不得把严格字符串匹配率直接称为业务完成率。
+
+Dify 单独按 [Dify 对照步骤](dify.md) 验证；本机尚未启动 Dify 时不能填写其通过结果。
+
+## 裁判人工复核
+
+`python scripts/prepare_acceptance_pack.py` 为当前索引最新已完成运行导出 Agent 逐条证据和
+A/D 各10条裁判抽样（固定种子42），保存在 `data/review/public-v1/`。
+复制 `judge_reviews.template.json` 为自己的审核文件，依据 `judge_review_20.md`
+逐条填写三个0到1的评分、审核人和依据；应先独立评分，再查看自动分数。
+完成20条后导入：
+
+```bash
+kb review-judge data/review/public-v1/judge_review_20.jsonl /实际路径/judge-reviews.json
+```
+
+一致率预定义为人工与自动分数绝对差不超过0.20的占比，同时报告平均绝对差和样本数。
+此容差用于描述裁判一致性，不等于答案正确率或指标验收阈值。缺分、未署名、缺依据、重复ID
+和样本哈希变化均拒绝导入。每次导入保存独立版本，不覆盖原始评分或先前审核。
+
+云端追踪配置及公开数据验证见 [LangSmith 操作说明](langsmith.md)。

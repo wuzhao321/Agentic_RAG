@@ -9,7 +9,7 @@
   <button class="nav active" data-view="chat">◈ <span>知识助手</span><span class="navnote">01</span></button>
   <button class="nav" data-view="library">▤ <span>文档与台账</span><span class="navnote">02</span></button>
   <button class="nav" data-view="evaluation">◎ <span>评估与来源</span><span class="navnote">03</span></button>
-  <div class="sidebar-bottom"><div class="local-tag"><i></i> LOCAL WORKSPACE</div><p>公开数据演示环境<br>问答与检索均在本机运行</p><span>Qwen × BGE × LangGraph</span></div>
+  <div class="sidebar-bottom"><div class="local-tag"><i></i> LOCAL WORKSPACE</div><p id="runtime-note">正在读取模型配置…</p><span id="runtime-model">BGE × LangGraph</span></div>
 </aside>
 <main>
   <header><span>工作空间 <b>/</b> <strong id="breadcrumb">知识助手</strong></span><span class="env"><i></i> 本地演示 <b>DEMO</b></span></header>
@@ -20,12 +20,12 @@
       <div class="conversation">
         <div class="panel-head"><span>开始探索你的知识库</span><span class="tiny">SOURCE-GROUNDED</span></div>
         <div id="messages" aria-live="polite"><div id="welcome"><div class="welcome-icon">✳</div><h2>今天想了解什么？</h2><p>选择一个示例，或输入你的问题。</p><div id="examples"></div></div></div>
-        <form id="composer"><div class="mode-tabs"><button type="button" class="selected" data-mode="rag">知识问答</button><button type="button" data-mode="agent">Agent 助手</button><button type="button" data-mode="search">检索证据</button></div><label class="sr-only" for="question">输入问题</label><textarea id="question" rows="2" maxlength="2000" placeholder="输入问题，例如：FastAPI 中如何声明必选查询参数？"></textarea><div class="composer-foot"><span id="mode-hint">单轮问答 · 回答附原文引用</span><button type="submit" id="send">发送 <span>↗</span></button></div></form>
-        <div class="footnote">内容由本地模型生成，请结合引用核对。公开数据不代表企业内部业务资料。</div>
+        <form id="composer"><div class="mode-tabs"><button type="button" class="selected" data-mode="rag">知识问答</button><button type="button" data-mode="agent">Agent 助手</button><button type="button" data-mode="search">检索证据</button></div><label class="sr-only" for="question">输入问题</label><textarea id="question" rows="2" maxlength="2000" placeholder="输入问题，例如：FastAPI 中如何声明必选查询参数？"></textarea><div class="composer-foot"><span id="mode-hint">多轮问答 · 回答附原文引用</span><button type="submit" id="send">发送 <span>↗</span></button></div></form>
+        <div class="footnote">内容由模型生成，请结合引用核对。公开数据不代表企业内部业务资料。</div>
       </div>
       <aside class="evidence-panel"><div class="panel-head"><span>证据与执行记录</span><span class="tiny">TRACE</span></div><div id="evidence"><div class="empty-evidence">▧<h3>答案背后的依据</h3><p>提问后查看检索片段、原始来源和 Agent 工具调用。</p></div></div></aside>
     </div>
   </section>
   <section id="library-view" class="view hidden"><div class="eyebrow">PUBLIC DATA COLLECTION</div><h1>文档与项目台账</h1><p class="subtitle">公开来源、固定版本、可追溯的转换记录。</p><div id="documents" class="document-grid"></div><h2 class="section-title">公开项目台账</h2><div class="table-scroll"><table><thead><tr><th>项目</th><th>签订日期</th><th>合同金额（元）</th><th>供应商</th><th>来源</th></tr></thead><tbody id="projects"></tbody></table></div><p class="footnote">台账金额统一换算为人民币元；负责人未公开，未以采购人或联系人代替。</p></section>
-  <section id="evaluation-view" class="view hidden"><div class="eyebrow">EVIDENCE BEFORE METRICS</div><h1>评估与来源核对</h1><p class="subtitle">演示集与正式验收留出集分开管理。</p><div id="review"></div><div class="notice"><h3>评估方式</h3><p>演示集保留参考答案、来源证据和文档位置，通过原文、解析文档与索引中的证据定位检查。</p><p>运行结果记录回答、引用、工具调用及耗时。答案要点统计、证据命中率、RAGAS 指标与人工完成率分别计算。</p></div><div class="notice"><h3>模型与检索</h3><p id="runtime"></p><p>采购资料是官方公告的摘录转换件，不是完整合同。FastAPI 文档来自固定 Git commit，保留 MIT 许可。</p></div></section>
+  <section id="evaluation-view" class="view hidden"><div class="eyebrow">EVIDENCE BEFORE METRICS</div><h1>评估与来源核对</h1><p class="subtitle">演示集与正式验收留出集分开管理。</p><div class="notice"><h3>公开 QA 人工审核</h3><p>200 条候选题附原文证据，审批记录与数据版本绑定。</p><a href="/review" target="_blank" rel="noopener">打开逐题审核页面 ↗</a></div><div id="review"></div><div class="notice"><h3>评估方式</h3><p>演示集保留参考答案、来源证据和文档位置，通过原文、解析文档与索引中的证据定位检查。</p><p>运行结果记录回答、引用、工具调用及耗时。答案要点统计、证据命中率、RAGAS 指标与人工完成率分别计算。</p></div><div class="notice"><h3>模型与检索</h3><p id="runtime"></p><p>采购资料是官方公告的摘录转换件，不是完整合同。FastAPI 文档来自固定 Git commit，保留 MIT 许可。</p></div></section>
 </main><script src="/app.js"></script></body></html>

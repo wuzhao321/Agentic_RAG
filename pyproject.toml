@@ -16,7 +16,12 @@ dependencies = [
 [project.optional-dependencies]
 models = ["sentence-transformers>=5,<6", "torch>=2.6,<3"]
 # RAGAS 0.3.9 imports VertexAI paths removed by langchain-community 0.4.
-eval = ["ragas==0.3.9", "datasets>=4,<5", "langchain-community==0.3.31"]
+eval = [
+    "ragas==0.3.9",
+    "datasets>=4,<5",
+    "langchain-community==0.3.31",
+    "docx2txt>=0.9,<1",
+]
 local = ["mlx-lm>=0.28,<0.32; sys_platform == 'darwin' and platform_machine == 'arm64'"]
 
 [dependency-groups]

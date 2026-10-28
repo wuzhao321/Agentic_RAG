@@ -42,12 +42,30 @@ def eval_rag(final: bool = False, grid: bool = False):
     output({"run_directory": str(path)})
 
 
+@app.command("validate-local")
+def validate_local(suite: str = "retrieval"):
+    """公开开发集实测：retrieval / ragas / conversation；仅调用本机模型，不触碰正式留出集。"""
+    from kb.eval.local_validation import validate_local as run_validation
+
+    output({"run_directory": str(evaluation_command(lambda: run_validation(suite)))})
+
+
 @app.command("freeze-eval")
 def freeze_eval():
     """冻结配置、代码、模型和索引版本；不读取留出集，不调用模型。"""
     from kb.eval.service import freeze_evaluation
 
     output({"frozen_snapshot": str(evaluation_command(freeze_evaluation))})
+
+
+@app.command("validate-cloud")
+def validate_cloud(suite: str = "ragas", trace: bool = False):
+    """公开开发集云端实测：ragas / conversation / agent；将公开片段发送给配置的模型。"""
+    from kb.eval.local_validation import validate_cloud as run_validation
+
+    output(
+        {"run_directory": str(evaluation_command(lambda: run_validation(suite, trace_tasks=trace)))}
+    )
 
 
 @app.command("eval-agent")
@@ -58,19 +76,42 @@ def eval_agent(retest: bool = False):
     output({"run_directory": str(evaluation_command(lambda: evaluate_agent(retest=retest)))})
 
 
+@app.command("trace-demo")
+def trace_demo():
+    """显式上传一组公开 RAG/Agent 追踪到已配置的 LangSmith 项目。"""
+    from kb.observability import trace_demo as run_trace
+
+    output({"run_directory": str(evaluation_command(run_trace))})
+
+
 @app.command("review-agent")
 def review_agent(run_directory: Path, reviews: Path):
     """导入人工完成率与失败归因；保留原始轨迹与每次审核版本。"""
     from kb.eval.agent_eval import apply_reviews
 
     config = load_config("eval")
-    if not run_directory.resolve().is_relative_to(Path(config["runs_dir"]).resolve()):
-        raise typer.BadParameter("运行目录必须位于配置的 runs_dir 内")
+    allowed = [Path(config["runs_dir"]), Path("data/demo/cloud-runs")]
+    if not any(run_directory.resolve().is_relative_to(root.resolve()) for root in allowed):
+        raise typer.BadParameter("运行目录必须位于正式 runs_dir 或公开开发 cloud-runs 内")
     from kb.eval.protocol import same_file
 
     if same_file(reviews, Path(config["holdout_path"])):
         raise typer.BadParameter("人工审核文件不能指向 QA 留出集")
     output(evaluation_command(lambda: apply_reviews(run_directory, reviews)))
+
+
+@app.command("review-judge")
+def review_judge(samples: Path, reviews: Path):
+    """导入20条人工裁判评分并计算一致率，保存新的审核版本。"""
+    from kb.eval.judge_review import import_judge_reviews
+    from kb.eval.protocol import protect_tune_path
+
+    holdout = Path(load_config("eval")["holdout_path"])
+    evaluation_command(lambda: protect_tune_path(samples, holdout))
+    evaluation_command(lambda: protect_tune_path(reviews, holdout))
+    output(
+        {"run_directory": str(evaluation_command(lambda: import_judge_reviews(samples, reviews)))}
+    )
 
 
 @app.command()
@@ -82,8 +123,16 @@ def demo():
 
 
 @app.command("demo-web")
-def demo_web():
-    """启动本地 Qwen 模型与网页 demo（Apple Silicon），不需要云端密钥。"""
+def demo_web(cloud: bool = False):
+    """启动网页 demo；--cloud 使用 .env 模型，默认启动本地 Qwen。"""
+    if cloud:
+        import os
+
+        from kb.web import serve
+
+        os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", LANGSMITH_TRACING="false")
+        evaluation_command(lambda: serve(load_config("demo")["web_port"], cloud=True))
+        return
     from kb.local_demo import run_local_demo
 
     evaluation_command(run_local_demo)

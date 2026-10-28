@@ -20,6 +20,9 @@ def inspect_setup(root: Path = Path(".")) -> dict:
         "ledger_exists": (root / agent["ledger_path"]).exists(),
         "dashscope_key_configured": bool(env.get("DASHSCOPE_API_KEY")),
         "qwen_model_configured": bool(env.get("QWEN_MODEL")),
+        "llm_provider": env.get("LLM_PROVIDER") or agent.get("provider", "dashscope"),
+        "deepseek_key_configured": bool(env.get("DEEPSEEK_API_KEY")),
+        "deepseek_model_configured": bool(env.get("DEEPSEEK_MODEL")),
         "tune_exists": (root / evaluation["tune_path"]).exists(),
         "holdout_exists": (root / evaluation["holdout_path"]).exists(),
         "frozen_exists": (root / evaluation["frozen_path"]).exists(),
@@ -41,8 +44,12 @@ def inspect_setup(root: Path = Path(".")) -> dict:
         result["next_steps"].append("补齐登记表元数据并运行 kb ingest")
     if not result["ledger_exists"]:
         result["next_steps"].append("准备 data/ledger/projects.json")
-    if not result["dashscope_key_configured"] or not result["qwen_model_configured"]:
-        result["next_steps"].append("在本地 .env 填写 Qwen API Key 和具体模型版本")
+    profile = agent.get("providers", {}).get(result["llm_provider"], {})
+    if not env.get(profile.get("key_env", "")) or not env.get(profile.get("model_env", "")):
+        result["next_steps"].append(
+            f"在本地 .env 填写 {profile.get('key_env', '供应商密钥')} "
+            f"和 {profile.get('model_env', '模型名')}"
+        )
     if not result["tune_exists"]:
         result["next_steps"].append("审核 QA 标注后运行 kb split-eval")
     return result

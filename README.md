@@ -12,7 +12,7 @@ Agentic_RAG 是面向企业文档与项目台账的知识问答系统。通过�
 - **交互工作台**：提供知识问答、Agent 对话、检索证据、文档列表、项目台账及评估结果浏览。
 - **数据与评估工具**：包含公开数据准备脚本、QA 与 Agent 任务格式、RAGAS 评估、检索消融、参数搜索及留出集管理。
 
-主要技术：Python、LangChain、LangGraph、Chroma、BGE、BM25、Qwen、MLX、RAGAS。
+主要技术：Python、LangChain、LangGraph、Chroma、BGE、BM25、DeepSeek、Qwen、MLX、RAGAS。
 
 ## 项目结构与导航
 
@@ -45,6 +45,8 @@ Agentic_RAG/
 | 安装、文档接入与命令行使用 | [使用指南](docs/usage.md) |
 | 网页工作台与本地模型启动 | [演示指南](docs/demo.md) |
 | QA、Agent 任务与评估命令 | [评估协议](docs/evaluation.md) |
+| Docker、Dify 知识库与对照评估 | [Dify 操作说明](docs/dify.md) |
+| LangSmith 云端调用追踪 | [追踪操作说明](docs/langsmith.md) |
 | 检索方案与消融方法 | [检索消融](docs/ablation.md) |
 | 公开数据来源、转换与字段映射 | [数据说明](docs/public-data/README.md) |
 | Agent 工具实现 | [知识搜索](src/kb/agent/tools/knowledge_search.py) · [文档摘要](src/kb/agent/tools/document_summary.py) · [台账查询](src/kb/agent/tools/project_query.py) |

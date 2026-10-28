@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from kb.config import load_config
 from kb.eval.runs import file_hash, source_hash
+from kb.runtime import llm_identity
 
 
 def same_file(a: Path, b: Path) -> bool:
@@ -23,9 +24,7 @@ def evaluation_snapshot(root: Path = Path("."), *, include_tune: bool = True) ->
     tune, holdout = root / cfg["tune_path"], root / cfg["holdout_path"]
     protect_tune_path(tune, holdout)
     load_dotenv(root / ".env")
-    model = os.getenv("QWEN_MODEL")
-    if not model:
-        raise ValueError("请设置具体版本的 QWEN_MODEL，再冻结或运行评估")
+    identity = llm_identity(configs["agent"], os.environ)
     index = root / configs["ingest"]["index_dir"] / "active.json"
     if not index.exists():
         raise FileNotFoundError("尚无业务索引，请先完成 kb scan / kb ingest")
@@ -38,7 +37,7 @@ def evaluation_snapshot(root: Path = Path("."), *, include_tune: bool = True) ->
     dictionary = root / configs["ingest"]["domain_dictionary"]
     return {
         "configs": configs,
-        "qwen_model": model,
+        "llm_identity": identity,
         "index_fingerprint": manifest["fingerprint"],
         "index_collection": manifest["collection"],
         "source_sha256": source_hash(root),

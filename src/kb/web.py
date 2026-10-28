@@ -1,5 +1,7 @@
 """Loopback-only demo UI backed by the real retrieval chain and LangGraph."""
 
+import base64
+import hashlib
 import json
 import logging
 import re
@@ -17,23 +19,26 @@ from langgraph.errors import GraphRecursionError
 from kb.agent.graph import build_graph
 from kb.agent.tools import build_tools
 from kb.agent.tools.project_query import read_ledger
+from kb.chains.conversation import build_rag_graph
 from kb.chains.rag_chain import RagChain, source_label
 from kb.config import load_config
-from kb.runtime import make_retrieval
+from kb.runtime import make_llm, make_retrieval
 
 LOG = logging.getLogger(__name__)
 
 
 class DemoService:
-    def __init__(self, saver):
+    def __init__(self, saver, cloud=False):
         self.demo = load_config("demo")
         self.config = load_config("agent")
         self.config["grounded_tool_answers"] = True
         self.config["ledger_source"] = "官方采购公告整理的演示台账（非企业内部数据）"
-        self.llm = ChatOpenAI(**self.demo["llm"])
+        self.cloud = cloud
+        self.llm = make_llm(self.config) if cloud else ChatOpenAI(**self.demo["llm"])
         retrieval_config = {**load_config("retrieval"), **self.demo.get("retrieval", {})}
         self.retrieval, self.chunks = make_retrieval(retrieval_config=retrieval_config)
         self.rag = RagChain(self.retrieval, self.llm)
+        self.rag_graph = build_rag_graph(self.rag, self.config, saver)
         self.graph = build_graph(
             self.llm,
             build_tools(self.retrieval, self.chunks, self.llm, self.config),
@@ -42,6 +47,15 @@ class DemoService:
         )
         self.manifest = json.loads(Path("data/demo/manifest.json").read_text())
         self.documents = {d["file_name"]: d for d in self.manifest["documents"]}
+        if cloud:
+            if any(c.metadata["doc_name"] not in self.documents for c in self.chunks):
+                raise ValueError("云端演示只允许公开来源清单内的索引文档")
+            public_ids = {d["project_id"] for d in self.documents.values()}
+            if any(
+                p.project_id not in public_ids
+                for p in read_ledger(Path(self.config["ledger_path"]))
+            ):
+                raise ValueError("云端演示台账包含公开来源清单以外的项目")
         self.lock = threading.Lock()
         self.failed_sessions = set()
 
@@ -56,8 +70,26 @@ class DemoService:
                 and (run / "summary.json").exists()
             ):
                 run_summary = json.loads((run / "summary.json").read_text())
+        development_runs = []
+        active = json.loads(Path("data/index/active.json").read_text())
+        for kind in ["ragas", "conversation", "agent_baseline", "agent_retest"]:
+            candidates = sorted(Path("data/demo/cloud-runs").glob(f"*_{kind}_*/summary.json"))
+            if candidates:
+                directory = candidates[-1].parent
+                snapshot = json.loads((directory / "snapshot.json").read_text())
+                development_runs.append(
+                    {
+                        "kind": kind,
+                        "run": directory.name,
+                        "summary": json.loads(candidates[-1].read_text()),
+                        "status": json.loads((directory / "status.json").read_text())["status"],
+                        "current_index": snapshot.get("index", {}).get("fingerprint")
+                        == active["fingerprint"],
+                    }
+                )
         return {
-            "model": "Qwen3-4B-Instruct-2507 · MLX 4-bit",
+            "model": self.llm.model_name if self.cloud else "Qwen3-4B-Instruct-2507 · MLX 4-bit",
+            "cloud": self.cloud,
             "retrieval": "BGE-large-zh + BM25 + RRF + BGE reranker",
             "documents": list(self.documents.values()),
             "chunks": len(self.chunks),
@@ -66,6 +98,7 @@ class DemoService:
             ],
             "evaluation": json.loads(review.read_text()) if review.exists() else None,
             "latest_run": run_summary,
+            "development_runs": development_runs,
             "busy": self.lock.locked(),
             "examples": [
                 {"mode": "rag", "question": "FastAPI 中如何把查询参数设置为必选？"},
@@ -94,7 +127,18 @@ class DemoService:
     def query(self, mode, question, session):
         start = time.perf_counter()
         if mode == "rag":
-            result = self.rag.invoke(question)
+            key = "rag-" + session
+            if key in self.failed_sessions:
+                raise ValueError("上次调用未完成，请点击“新建会话”后重试。")
+            try:
+                state = self.rag_graph.invoke(
+                    {"messages": [HumanMessage(content=question)]},
+                    {"configurable": {"thread_id": key}},
+                )
+            except Exception:
+                self.failed_sessions.add(key)
+                raise
+            result = dict(state["result"])
             self.add_provenance(result["sources"])
             result["trace"] = []
         elif mode == "search":
@@ -170,7 +214,7 @@ def handler_class(service):
                 "application/json; charset=utf-8",
             )
 
-        def send_body(self, status, body, content_type):
+        def send_body(self, status, body, content_type, policy=None):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
@@ -178,7 +222,8 @@ def handler_class(service):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'self'; style-src 'self'; "
+                policy
+                or "default-src 'self'; style-src 'self'; "
                 "script-src 'self'; connect-src 'self'; frame-ancestors 'none'",
             )
             self.end_headers()
@@ -197,6 +242,25 @@ def handler_class(service):
             route = urlsplit(self.path).path
             if route == "/api/status":
                 return self.send_json(200, service.status())
+            if route == "/review":
+                path = Path("data/review/public-v1/review.html")
+                if not path.exists():
+                    return self.send_json(404, {"error": "请先生成审核页面"})
+                html = path.read_text(encoding="utf-8")
+
+                def hashes(tag):
+                    return " ".join(
+                        "'sha256-"
+                        + base64.b64encode(hashlib.sha256(s.encode()).digest()).decode()
+                        + "'"
+                        for s in re.findall(rf"<{tag}(?:\s[^>]*)?>(.*?)</{tag}>", html, re.S)
+                    )
+
+                policy = (
+                    f"default-src 'none'; script-src {hashes('script')}; "
+                    f"style-src {hashes('style')}; frame-ancestors 'none'"
+                )
+                return self.send_body(200, html.encode(), "text/html; charset=utf-8", policy)
             assets = {
                 "/": ("index.html", "text/html; charset=utf-8"),
                 "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -251,11 +315,11 @@ def handler_class(service):
     return Handler
 
 
-def serve(port=8765):
-    checkpoint = Path("data/sessions/demo.sqlite")
+def serve(port=8765, cloud=False):
+    checkpoint = Path("data/sessions/demo-cloud.sqlite" if cloud else "data/sessions/demo.sqlite")
     checkpoint.parent.mkdir(parents=True, exist_ok=True)
     with SqliteSaver.from_conn_string(str(checkpoint)) as saver:
-        service = DemoService(saver)
+        service = DemoService(saver, cloud=cloud)
         server = ThreadingHTTPServer(("127.0.0.1", port), handler_class(service))
         print(f"Demo ready: http://127.0.0.1:{port}", flush=True)
         try:

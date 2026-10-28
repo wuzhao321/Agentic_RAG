@@ -5,8 +5,23 @@ summary_batch_chars: 6000
 checkpoint_path: data/sessions/agent.sqlite
 ledger_path: data/ledger/projects.json
 project_match_score: 80
+provider: deepseek
+providers:
+  deepseek:
+    base_url: https://api.deepseek.com
+    key_env: DEEPSEEK_API_KEY
+    model_env: DEEPSEEK_MODEL
+    documented_version: DeepSeek-V4.1-Flash-1017 (deepseek-flash; verified 2026-10-25)
+    parameters:
+      extra_body:
+        thinking:
+          type: disabled
+      max_tokens: 4096
+  dashscope:
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    key_env: DASHSCOPE_API_KEY
+    model_env: QWEN_MODEL
 llm:
-  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
   temperature: 0
   seed: 42
   timeout: 60

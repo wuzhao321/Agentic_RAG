@@ -25,3 +25,4 @@ docs/reports/ingest-report.json
 docs/reports/ingest-report.md
 data/public_sources/*
 data/demo/*
+data/review/*

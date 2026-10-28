@@ -25,7 +25,6 @@ def evaluate_rag(*, final=False, grid=False) -> Path:
     # All variants share one model instance and the same index snapshot.
     llm = make_llm(config["agent"])
     base, _ = make_retrieval(retrieval_config={**config["retrieval"], "mode": "D"})
-    scorer = RagasScorer(llm, base.vector.embedding, eval_config)
 
     def chain_factory(retrieval_config):
         vector = VectorIndex(base.vector.collection, base.vector.embedding, retrieval_config)
@@ -34,7 +33,8 @@ def evaluate_rag(*, final=False, grid=False) -> Path:
         )
         return RagChain(pipeline, llm)
 
-    return run_rag(snapshot, chain_factory, scorer, final=final, grid=grid)
+    with RagasScorer(llm, base.vector.embedding, eval_config) as scorer:
+        return run_rag(snapshot, chain_factory, scorer, final=final, grid=grid)
 
 
 def freeze_evaluation() -> Path:
