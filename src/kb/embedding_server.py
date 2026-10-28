@@ -122,6 +122,7 @@ def main():
     from kb.retrieval.vector import LocalEmbedding
 
     embedding = LocalEmbedding(load_config("ingest")["embedding"])
+
     class Server(ThreadingHTTPServer):
         request_queue_size = 32
 

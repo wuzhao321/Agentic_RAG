@@ -14,6 +14,93 @@ Agentic_RAG 是面向企业文档与项目台账的知识问答系统。通过�
 
 主要技术：Python、LangChain、LangGraph、Chroma、BGE、BM25、DeepSeek、Qwen、MLX、RAGAS。
 
+## 快速启动：公开数据 + DeepSeek
+
+使用 Python 3.11 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)。以下命令均在项目根目录执行。
+DeepSeek 负责生成和工具调用，BGE 向量模型与重排模型在本机 CPU 上运行；首次安装和下载模型需要联网。
+
+```bash
+git clone https://github.com/wuzhao321/Agentic_RAG.git
+cd Agentic_RAG
+uv sync --python 3.11 --locked --extra models --extra eval
+test -e .env || cp .env.example .env
+```
+
+编辑根目录 `.env`，填入自己的 DeepSeek 密钥：
+
+```dotenv
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=替换为你的实际密钥
+DEEPSEEK_MODEL=deepseek-flash
+LANGSMITH_TRACING=false
+```
+
+下载固定版本的 BGE 模型、准备 7 份公开演示文档与采购台账，然后入库并生成演示题：
+
+```bash
+uv run --no-sync python scripts/download_models.py
+uv run --no-sync python scripts/prepare_public_demo.py
+uv run --no-sync kb ingest
+uv run --no-sync python scripts/prepare_demo_eval.py
+uv run --no-sync kb demo-web --cloud
+```
+
+打开 <http://127.0.0.1:8765>。可尝试：
+
+- 知识问答：`FastAPI 中如何把查询参数设置为必选？`
+- Agent 台账查询：`查询2026年签订且合同金额大于200万元的项目，返回项目名称和金额。`
+- 文档摘要：`总结 public_demo/浙江税务GPU算力采购公告.pdf 的主要信息。`
+
+后续启动只需执行 `uv run --no-sync kb demo-web --cloud`，按 Ctrl+C 停止。
+服务仅监听本机地址，不含登录或多租户权限控制；云端模式会将问题及相关证据发送到 DeepSeek。
+
+![网页工作台](docs/images/workspace.png)
+
+## 可选能力与评估
+
+| 场景 | 操作 |
+| --- | --- |
+| Apple Silicon 本地 Qwen | 执行 `uv sync --locked --extra models --extra eval --extra local` 和 `uv run --no-sync python scripts/download_demo_model.py`，停止云端服务后运行 `uv run --no-sync kb demo-web`；详见[演示指南](docs/demo.md) |
+| 扩展公开语料与候选审核集 | 顺序运行下方命令；来源和许可见[数据说明](docs/public-data/README.md) |
+| Dify 对照实验 | 需要 Docker、独立知识库和已发布 Workflow；部署、BGE 接口及 20 题评估见 [Dify 操作说明](docs/dify.md) |
+| LangSmith 追踪 | 配置独立追踪密钥与区域，显式运行 `uv run --no-sync kb trace-demo`；详见[追踪操作说明](docs/langsmith.md) |
+
+扩展资料前先完成上述演示数据准备，再执行：
+
+```bash
+uv run --no-sync python scripts/prepare_extended_public.py
+uv run --no-sync python scripts/prepare_review_tasks.py
+uv run --no-sync kb ingest
+uv run --no-sync python scripts/prepare_demo_eval.py
+```
+
+重启工作台后，打开 <http://127.0.0.1:8765/review> 审核候选 QA。
+生成脚本会更新本地来源、索引或待审核材料，已有人工审核记录应先单独保存。
+人工审核导入、RAGAS、Agent 指标、160/40 划分及一次性留出评估见[评估协议](docs/evaluation.md)。
+
+与 GitHub Actions 一致的基础检查可在独立环境执行：
+
+```bash
+uv sync --locked --extra eval
+uv run --no-sync python -c "import ragas; print(ragas.__version__)"
+uv run --no-sync ruff check src scripts tests
+uv run --no-sync ruff format --check src scripts tests
+uv run --no-sync pytest -q
+```
+
+自动化测试使用固定样例和模拟模型，无需 API 密钥或下载模型权重；真实模型评估单独执行。
+上述基础安装不包含 BGE 推理依赖；切回演示时重新执行带 `--extra models --extra eval` 的安装命令。
+
+## 当前完成范围
+
+项目已具备 RAG 与 Agent 演示、公开采购台账、Dify 对照和 LangSmith 追踪能力。
+开发验证覆盖真实模型问答、40+20 条 Agent 任务及多轮会话；接口执行成功、工具参数匹配与答案正确率分别统计。
+
+正式验收仍需完成候选数据的人工审核、语料规模补齐、正式调参及冻结后的留出评估。
+当前扩展数据为 80 份转换文档：48 篇独立 FastAPI 教程、2 份采购公告及单个 Kubernetes 规范抽取的 30 份对象说明；
+不能称为 80 份独立企业业务文件。当前主索引为 1362 个分块，尚未达到计划中的 5200+ 目标。
+QA、表格、Agent 任务及裁判评分的自动检查不能替代人工验收；长文档摘要的 P95 延迟仍需优化。
+
 ## 项目结构与导航
 
 ```text
@@ -27,6 +114,7 @@ Agentic_RAG/
 │   ├── web.py            # 网页服务与接口
 │   ├── web_assets/       # 工作台前端
 │   ├── local_demo.py     # 本地模型服务启动管理
+│   ├── embedding_server.py # Dify 使用的本机 BGE 向量接口
 │   └── cli.py            # 命令行入口
 ├── configs/              # 入库、检索、Agent、评估与演示配置
 ├── scripts/              # 数据准备、模型下载与端到端检查
