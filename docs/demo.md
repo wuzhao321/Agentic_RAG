@@ -48,8 +48,6 @@ uv run --no-sync kb demo-web
 “文档与台账”提供文档来源链接和摘要入口；“评估与来源”展示证据定位与批量检查结果。
 输入框 Enter 发送，Shift+Enter 换行。新建会话分配独立编号，历史会话仍保存在 SQLite。
 
-![网页工作台](images/workspace.png)
-
 ## 检索与工具回答
 
 `prefer_exact_section` 在问题完整包含不少于四字符的子章节名时，保留一条对应的 BM25 证据。
@@ -103,9 +101,9 @@ uv run --no-sync python scripts/prepare_review_tasks.py
 uv run --no-sync kb ingest
 ```
 
-扩展后共 80 份转换文档：48 篇独立 FastAPI 教程、2 份采购公告、单一 Kubernetes OpenAPI 规范中的 30 个对象定义。
-后者不能称为 30 份独立原始规范。保留完整原始 JSON、版本、许可证和转换说明。
+扩展脚本下载 FastAPI 教程、读取采购公告摘录，并从 Kubernetes OpenAPI 规范提取对象定义。
+转换件保留原始来源、版本、许可证和处理说明；同一规范中的对象定义共用其上游来源。
 `data/review/public-v1/review.html` 提供 200 条候选 QA 的逐条审核与导出；20 个表格解析对照、40+20 Agent 候选任务同目录保存。
 网页服务运行时可直接打开 `http://127.0.0.1:8765/review`。审核者逐条检查来源后填写本人姓名，
 批准或驳回并导出审核 JSON；使用 `scripts/import_qa_reviews.py` 导入，全部有效批准后才能进入正式划分。
-这些是待审核材料，生成脚本不会创建正式调参集或留出集。
+候选生成、审核导入与正式数据划分分别执行，详见 [评估协议](evaluation.md)。

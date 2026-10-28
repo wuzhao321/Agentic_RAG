@@ -11,7 +11,7 @@ providers:
     base_url: https://api.deepseek.com
     key_env: DEEPSEEK_API_KEY
     model_env: DEEPSEEK_MODEL
-    documented_version: DeepSeek-V4.1-Flash-1017 (deepseek-flash; verified 2026-10-25)
+    documented_version: DeepSeek-V4.1-Flash-1017 (deepseek-flash)
     parameters:
       extra_body:
         thinking:

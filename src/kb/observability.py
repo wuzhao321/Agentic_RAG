@@ -32,7 +32,7 @@ def tracing_settings(env=None):
         raise ValueError("LANGSMITH_ENDPOINT 必须是官方区域 HTTPS API 地址")
     key = env.get("LANGSMITH_API_KEY")
     if not key:
-        raise ValueError("请在本地 .env 填写 LANGSMITH_API_KEY，无需发送到聊天")
+        raise ValueError("请在本地 .env 填写 LANGSMITH_API_KEY")
     return {
         "api_key": key,
         "api_url": endpoint,

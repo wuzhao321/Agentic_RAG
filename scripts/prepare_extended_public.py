@@ -295,7 +295,7 @@ def compare_tables(items):
         results.append(result)
     jsonl(REVIEW / "table_comparison_20.jsonl", results)
     lines = [
-        "# 20 个参数表解析对照（待人工审核）",
+        "# 20 个参数表解析对照",
         "",
         "docx2txt 输出为纯文本，结构化解析保留表头和行列。"
         "两种方式都保留文字；结构丢失不自动等同于问答失败。",
@@ -318,7 +318,7 @@ def compare_tables(items):
                 r["docx2txt"][:1800],
                 "```",
                 "",
-                "审核：未完成。",
+                "审核结论：________；审核人：________。",
                 "",
             ]
         )

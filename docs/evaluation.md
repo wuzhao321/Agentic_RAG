@@ -25,9 +25,9 @@ kb eval-rag --grid
 建议配置按三项指标等权均值排序，只比较有效样本完整覆盖的配置，不自动改写 YAML；还应结合拒答、延迟和失败案例选择。
 
 RAGAS 使用 Faithfulness、ResponseRelevancy（字段 answer_relevancy）、LLMContextRecall。
-生成和裁判共用配置选择的模型（当前默认 DeepSeek），包装器不改变 temperature=0，也不把客户端 n 改成多候选。
-裁判 embedding 使用本地 BGE，RAGAS 遥测关闭。固定 0.3.9 与兼容的 Community 版本；
-LangChain wrapper 已有弃用提示，后续升级须重跑集成测试。
+生成和裁判共用配置选择的模型，包装器不改变 temperature=0，也不把客户端 n 改成多候选。
+裁判 embedding 使用本地 BGE，RAGAS 遥测关闭。RAGAS 固定为 0.3.9，Community 版本由锁文件约束；
+升级评估依赖时运行集成测试，检查指标适配与结果保存。
 
 统计口径：
 
@@ -37,7 +37,7 @@ LangChain wrapper 已有弃用提示，后续升级须重跑集成测试。
 - 无答案题生成失败仍保留在拒答率分母中，按失败计。
 - 引用校验导致拒答时仍保留实际检索上下文，以区别检索和生成失败。
 - 裁判上下文包含生成时使用的来源编号、文档/章节标签和正文，逐字保持一致；
-  旧版仅传正文的开发报告保留，不能与此口径直接合并。
+  比较不同运行时，应确认上下文格式一致。
 - 跨配置和跨数据集比较使用相同的样本范围、失败处理规则与指标定义。
 
 ## 最终评估
@@ -114,7 +114,7 @@ kb validate-cloud --suite agent
 
 云端检查使用 `.env` 中的供应商凭据，运行产物存入 `data/demo/cloud-runs/`。
 检索检查覆盖 A–D、18 组网格和演示配置，保存在 `data/demo/validation/`；
-参考片段命中率与 RAGAS 指标分别报告。开发集未经人工审核，结果不用于正式验收。
+参考片段命中率与 RAGAS 指标分别报告。开发集检查与正式评估分别使用独立的数据路径和审核流程。
 RAGAS 在同一事件循环中复用异步客户端，避免逐题评分后关闭循环导致连接失效。
 
 ## 公开候选集的人工审核
@@ -140,16 +140,16 @@ uv run --no-sync kb split-eval data/eval/qa_all.jsonl
 它不自动划分数据；任何驳回、缺项或哈希变化都会阻止导入，不会覆盖已有正式数据。
 正式留出仍遵循前述冻结与一次性运行协议。
 
-`agent_baseline_40.jsonl` 与 `agent_retest_20.jsonl` 为互不重复的候选任务，尚非人工验收集。
+`agent_baseline_40.jsonl` 与 `agent_retest_20.jsonl` 为互不重复的候选任务，按上述流程审核后用于任务完成率评估。
 可先运行 `kb validate-cloud --suite agent_baseline` 和 `--suite agent_retest` 做开发验证。
 工具参数按严格规范化相等比较；同义检索词和项目简称也可能被标记不一致，应结合人工审核解释，
 不得把严格字符串匹配率直接称为业务完成率。
 
-Dify 单独按 [Dify 对照步骤](dify.md) 验证；本机尚未启动 Dify 时不能填写其通过结果。
+Dify 的部署、配置快照和评估步骤见 [Dify 对照步骤](dify.md)。
 
 ## 裁判人工复核
 
-`python scripts/prepare_acceptance_pack.py` 为当前索引最新已完成运行导出 Agent 逐条证据和
+`python scripts/prepare_acceptance_pack.py` 为活动索引对应的已完成运行导出 Agent 逐条证据和
 A/D 各10条裁判抽样（固定种子42），保存在 `data/review/public-v1/`。
 复制 `judge_reviews.template.json` 为自己的审核文件，依据 `judge_review_20.md`
 逐条填写三个0到1的评分、审核人和依据；应先独立评分，再查看自动分数。

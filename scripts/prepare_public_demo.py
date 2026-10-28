@@ -98,7 +98,7 @@ def make_pdf(record, destination):
         y += height
     page.insert_text(
         (40, y + 25),
-        "来源：官方公告；核对日期 2026-10-23；负责人未公开。",
+        "来源：官方公告；负责人未公开。",
         fontname="china-s",
         fontsize=10,
     )
@@ -165,7 +165,7 @@ def main():
                 cells = table.add_row().cells
                 cells[0].text, cells[1].text = k, v
             doc.add_paragraph("来源：" + record["url"])
-            doc.add_paragraph("核对日期：2026-10-23；项目负责人未公开。")
+            doc.add_paragraph("项目负责人未公开。")
             doc.save(target)
         manifest.append(
             {
@@ -177,7 +177,7 @@ def main():
                 "source_sha256": hashlib.sha256(record["snapshot"].encode()).hexdigest(),
                 "artifact_sha256": digest(target),
                 "doc_type": "其他",
-                "transformation": "官方网页检索快照中的已核对字段转表格；省略联系方式；非原始合同",
+                "transformation": "官方公告摘录字段转表格；省略联系方式；非原始合同",
                 "project_id": record["ledger"]["project_id"],
                 "project_name": record["ledger"]["project_name"],
             }

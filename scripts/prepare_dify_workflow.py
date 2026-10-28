@@ -123,8 +123,7 @@ def build(dataset_id):
             "icon": "📚",
             "icon_background": "#E4E7FF",
             "description": (
-                "公开7文档开发对照：BGE纯向量Top5 + DeepSeek Flash（非思考，温度0）。"
-                "结果待人工审核。"
+                "公开知识库检索对照：BGE纯向量Top5 + DeepSeek Flash（非思考，温度0）。"
             ),
         },
         "workflow": {

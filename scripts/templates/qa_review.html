@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>公开 QA 审核</title>
 <style>body{max-width:980px;margin:32px auto;padding:20px;font:16px/1.6 system-ui;background:#f7f8fa;color:#172033}button,input,textarea{font:inherit;padding:8px;margin:4px}button{cursor:pointer}article{background:white;padding:24px;border:1px solid #ddd;border-radius:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f3f6;padding:16px}textarea{width:94%;height:64px}label{display:block}.toolbar{position:sticky;top:0;background:#f7f8fa;padding:12px}#status{font-weight:600}</style>
-<h1>公开知识库 QA 审核</h1><p>200 条候选题，尚未人工批准。逐条核对问题、答案和出处；需修改的题标记为驳回并说明原因。导出文件与候选集哈希绑定，不会自动创建留出集。</p>
+<h1>公开知识库 QA 审核</h1><p>逐条核对问题、答案和出处；需修改的题标记为驳回并说明原因。导出文件与候选集哈希绑定，用于导入审核记录。</p>
 <div class="toolbar"><span id="status"></span><label>审核人 <input id="reviewer" placeholder="填写姓名或团队标识"></label><button id="prev">上一题</button><button id="next">下一题</button><button id="pending">下一条待审核</button><button id="export">导出审核 JSON</button></div>
 <article><h2 id="title"></h2><p id="question"></p><h3>参考答案（候选）</h3><pre id="answer"></pre><h3>来源证据</h3><div id="sources"></div><label>审核备注<textarea id="notes"></textarea></label><button id="approve">批准此题</button><button id="reject">驳回此题</button><p id="decision"></p></article>
 <script id="dataset" type="application/json">PAYLOAD</script><script>
