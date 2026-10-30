@@ -14,27 +14,22 @@ Agentic_RAG 是面向企业文档与项目台账的知识问答系统。通过�
 
 主要技术：Python、LangChain、LangGraph、Chroma、BGE、BM25、DeepSeek、Qwen、MLX、RAGAS。
 
-## 简单 Demo
+## Demo：回答与引用证据
 
-安装 Python 3.11 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)，执行：
+基于公开 FastAPI 文档的真实问答。左侧回答标注来源编号，右侧可核对对应章节、原文与代码示例。
 
-```bash
-git clone https://github.com/wuzhao321/Agentic_RAG.git
-cd Agentic_RAG
-uv sync --python 3.11 --locked
-uv run --no-sync kb demo
-```
+![RAG 知识库真实问答：回答与 S3 引用原文并排展示](docs/assets/rag-answer-evidence.jpg)
 
-首次安装依赖需要联网；演示运行无需 API 密钥、模型权重或业务文档。
-程序在临时目录生成 Word 接口说明，解析并检索 `timeout_ms`，再查询合成项目台账。
-输出 JSON 中可看到：
+点击下方封面打开 **42 秒实机演示视频**，查看“输入问题 → 检索与生成 → 回答引用 → 原文核对”的过程。
+视频带中文字幕、无音轨；MP4 文件可播放或下载，具体取决于浏览器。
 
-- `chunks` 为 `2`，包含正文与表格片段。
-- `hits` 的表格证据包含 `timeout_ms | integer | 3000 毫秒`。
-- `ledger` 返回“演示项目”，金额为 `100000` 元。
+[![播放 RAG 知识库 42 秒演示视频](docs/assets/rag-demo-cover.jpg)](https://github.com/wuzhao321/Agentic_RAG/raw/refs/heads/main/docs/assets/rag-demo.mp4)
 
-该演示覆盖文档解析、BM25 检索和台账筛选；完整的 BGE 检索、生成式问答与 Agent 网页体验见
-[网页 Demo 指南](docs/demo.md)。
+[下载视频](https://github.com/wuzhao321/Agentic_RAG/raw/refs/heads/main/docs/assets/rag-demo.mp4) ·
+[启动网页 Demo](docs/demo.md) · [运行无需密钥的离线示例](docs/demo.md#离线最小示例)
+
+截图和视频来自两次独立问答，模型措辞及耗时可能不同；所用公开资料的来源与许可见
+[数据说明](docs/public-data/README.md)。
 
 ## 项目结构与导航
 
