@@ -21,8 +21,14 @@ data/index/*
 data/sessions/*
 models/*
 !**/.gitkeep
-docs/reports/ingest-report.json
-docs/reports/ingest-report.md
+# Personal development notes, stage reports, and generated reports stay local.
+/docs/reports/
+/docs/setup-log.md
+/docs/ablation-report.md
+/docs/dify-findings.md
+/docs/development-context/
+/docs/development-notes/
+/docs/stage-reports/
 data/public_sources/*
 data/demo/*
 data/review/*

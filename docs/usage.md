@@ -91,6 +91,7 @@ LangSmith 追踪由 `.env` 控制，默认关闭。
 ```bash
 uv run --no-sync kb doctor
 uv run --no-sync kb demo
+uv run --no-sync python -c "import ragas"
 uv run --no-sync pytest -q
 uv run --no-sync ruff check src scripts tests
 uv run --no-sync ruff format --check src scripts tests
@@ -98,3 +99,22 @@ uv run --no-sync ruff format --check src scripts tests
 
 `doctor` 检查配置与数据路径；`demo` 在临时目录生成样例，检查解析、检索和台账查询。
 批量模型评估、数据格式和审核导入见 [评估协议](evaluation.md)，检索实验见 [检索消融](ablation.md)。
+
+## 本地文件与版本管理
+
+仓库发布代码、配置模板、通用技术文档和复现公开数据所需的来源快照与许可证。
+以下文件由 `.gitignore` 排除，保存在使用者自己的环境中：
+
+| 内容 | 默认位置 |
+| --- | --- |
+| 个人开发记录、环境快照、阶段报告 | `.local/` |
+| 入库报告及其他生成报告 | `docs/reports/` |
+| 原始语料、登记表、台账 | `data/raw/`、`data/registry/`、`data/ledger/` |
+| 索引、会话、评估与审核产物 | `data/index/`、`data/sessions/`、`data/eval/`、`data/demo/`、`data/review/` |
+| 下载的公开原始资料、模型 | `data/public_sources/`、`models/` |
+| 密钥、第三方服务、本机缓存 | `.env`、`.tools/`、`.cache/` |
+
+目录中的 `.gitkeep` 仅用于保留必要的空目录。新增个人记录应放在 `.local/`，
+技术文档描述可复现的配置与操作方法，具体运行指标和阶段结论保存在本地报告中。
+如果文件已经被 Git 跟踪，仅添加忽略规则不会取消跟踪；使用 `git rm --cached -- <文件路径>`
+从后续提交移除跟踪并保留本地文件。此操作不清除历史提交中的内容。

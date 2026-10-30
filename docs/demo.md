@@ -12,7 +12,42 @@
 知识问答先结合历史改写检索问题，再以独立问题和证据生成答案；历史超长时沿用 Agent 的摘要策略。
 请求串行处理，并发请求返回忙状态。服务仅提供本地访问，不包含登录或多租户权限控制。
 
-## 安装与启动
+## 快速启动：公开数据与 DeepSeek
+
+安装 Python 3.11 和 uv，以下命令均在项目根目录执行。生成模型使用 DeepSeek，
+BGE 向量模型与重排模型在本机 CPU 上运行；首次安装与下载需要联网。
+
+```bash
+uv sync --python 3.11 --locked --extra models --extra eval
+test -e .env || cp .env.example .env
+```
+
+在 `.env` 填入自己的配置：
+
+```dotenv
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=替换为你的实际密钥
+DEEPSEEK_MODEL=deepseek-flash
+LANGSMITH_TRACING=false
+```
+
+下载固定版本的检索模型，准备公开文档与采购台账，构建索引并启动服务：
+
+```bash
+uv run --no-sync python scripts/download_models.py
+uv run --no-sync python scripts/prepare_public_demo.py
+uv run --no-sync kb ingest
+uv run --no-sync python scripts/prepare_demo_eval.py
+uv run --no-sync kb demo-web --cloud
+```
+
+打开 <http://127.0.0.1:8765>，在“知识问答”中输入 `FastAPI 中如何把查询参数设置为必选？`，
+查看回答和来源；在 Agent 中输入 `查询2026年签订且合同金额大于200万元的项目，返回项目名称和金额。`。
+回答由实际模型生成，以界面返回的证据为准。按 Ctrl+C 停止，后续可直接运行最后一条命令。
+云端模式会将问题和相关证据发送到配置的 DeepSeek 接口；会话库与本地模式分开保存。
+启动时检查索引与台账属于公开来源清单，切换模式前先停止旧服务。
+
+## Apple Silicon 本地模式安装与启动
 
 安装 Python 3.11 和 uv，在项目根目录执行：
 
@@ -81,17 +116,6 @@ uv run --no-sync python scripts/check_demo.py
 
 答案要点、参考片段命中、工具选择和严格参数匹配分别统计；字符串匹配与证据命中不等同于
 RAGAS 忠实度或人工任务完成率。详细指标和数据划分方式见 [评估协议](evaluation.md)。
-
-## 使用 DeepSeek 演示
-
-填写根目录 `.env` 后运行：
-
-```bash
-uv run --no-sync kb demo-web --cloud
-```
-
-浏览器打开 `http://127.0.0.1:8765`。检索模型在本机运行，问题和相关公开证据发往配置的云端模型；无需启动 MLX。
-云端与本地模式使用不同的会话库。启动时检查索引和台账属于公开来源清单；切换模式前先停止旧服务。
 
 ## 扩展公开语料与审核
 
