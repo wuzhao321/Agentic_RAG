@@ -32,3 +32,21 @@ models/*
 data/public_sources/*
 data/demo/*
 data/review/*
+
+# Local project planning, interview preparation, and captured demo runs.
+/AI Agent 执行 Prompt：*.md
+/企业知识库 RAG 问答系统与 AI Agent 项目计划书.md
+/面试问答准备：*.docx
+/docs/assets/rag-answer-evidence.jpg
+/docs/assets/rag-demo-cover.jpg
+/docs/assets/rag-demo.mp4
+/docs/images/workspace.png
+/deploy/site/.openai/
+/runs/
+/results/
+/artifacts/
+/predictions/
+/traces/
+/receipts/
+/ledgers/
+/reports/

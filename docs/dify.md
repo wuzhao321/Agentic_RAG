@@ -1,8 +1,7 @@
-# Dify 对照实验
+# Dify 接入与评估
 
-此项使用本机 Docker 引擎与 Dify `1.18.0`（提交
-`50abea97062110044f15d0e03ccecadd9ccc87ca`）；部署目录为 `.tools/dify/docker`。
-[官方源码](https://github.com/langgenius/dify/tree/1.18.0/docker)中的 Compose 文件与服务端 Workflow API 是本页依据。
+本指南使用 Dify 1.18.0 的 Compose 部署和 Workflow API，部署目录示例为 `.tools/dify/docker`。
+[Dify Compose 文件](https://github.com/langgenius/dify/tree/1.18.0/docker)
 
 ## 部署
 
@@ -62,7 +61,7 @@ Dify 与本项目根目录 `.env` 是两份不同配置文件。
 
 Dify 对照知识库使用 512 字符分段、64 字符重叠、Top K=5、纯向量检索、
 不重排、不设分数阈值。Dify 的字符切分和解析器与主项目不完全相同，
-实验报告必须记录此差异，不能宣称只改变了检索算法。
+比较结果时同时记录解析器与切分配置。
 采用单换行 `\n` 分段时，短行可能被拆成独立片段，影响表格字段关联。
 对比不同切分参数时分别保存配置和结果。
 
@@ -75,8 +74,8 @@ Dify 对照知识库使用 512 字符分段、64 字符重叠、Top K=5、纯向
 在工作室导入后检查并发布。生成器按 Dify 1.18.0 官方节点定义编写；
 DSL 版本兼容提示不等同于执行失败，必须用真实试运行验证。
 
-1. 添加 DeepSeek 模型供应商，使用已授权的 API；关闭思考模式、temperature=0，记录实际模型名。
-2. 将 `data/raw/public_demo` 的原始 7 份演示转换文档导入知识库，记录切分、embedding、召回与重排参数。
+1. 添加 DeepSeek 模型供应商，配置生成模型，在对照运行中保持模型和采样参数一致。
+2. 将 `data/raw/public_demo` 的演示转换文档导入知识库，记录切分、embedding、召回与重排参数。
 3. 新建 Workflow：Start 输入字符串 `query` → Knowledge Retrieval 使用 `query` → LLM → End。
 4. LLM 使用 `{{#retrieval.result#}}` 的完整来源记录（包括 title、metadata.document_name、content）回答，
    同一项目的字段只从对应文档取值，金额保留原始单位，不自行追加换算。
@@ -99,7 +98,7 @@ DIFY_APP_KEY=已发布Workflow的应用密钥
 ```
 
 快照工具读取指定本机应用的已发布版本和知识库，导出 JSON 与无凭据 YAML；
-不会导出供应商密钥。评估要求七份文档均已索引完成，并校验每次返回的 workflow_id。
+不会导出供应商密钥。评估先检查演示文档是否已索引完成，并校验每次返回的 workflow_id。
 逐条结果、延迟、token 数、实际检索证据、配置快照和审核模板保存到
 `data/demo/dify-runs/`。接口执行成功与答案正确分开统计；人工记录关键词、表格问题的实际失败案例。
 失败案例按实际结果记录问题、证据与错误类型。

@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const source = await readFile('dist/server/index.js', 'utf8');
+const { default: worker } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const origin = 'https://workspace.example';
+const request = (path, options) => new Request(origin + path, options);
+assert.equal((await worker.fetch(request('/'))).status, 200);
+assert.equal((await worker.fetch(request('/app.js'))).status, 200);
+assert.deepEqual(await (await worker.fetch(request('/api/connection'))).json(), { configured: false });
+assert.equal((await worker.fetch(request('/api/status'))).status, 503);
+assert.equal((await worker.fetch(request('/api/query', { method: 'POST', headers: { Origin: 'https://other.example' } }))).status, 403);
+assert.equal((await worker.fetch(request('/api/../health'))).status, 404);
+const env = { RAG_BACKEND_URL: 'https://backend.example', RAG_BACKEND_TOKEN: 'test-only-never-a-real-secret' };
+assert.deepEqual(await (await worker.fetch(request('/api/connection'), { ...env, RAG_BACKEND_URL: 'http://backend.example' })).json(), { configured: false });
+const originalFetch = globalThis.fetch;
+let upstreamCalls = 0;
+try {
+  globalThis.fetch = async (url, options) => {
+    upstreamCalls++;
+    assert.equal(url.href, 'https://backend.example/ingest-jobs');
+    assert.equal(options.headers.get('Authorization'), `Bearer ${env.RAG_BACKEND_TOKEN}`);
+    assert.equal(options.headers.get('Cookie'), null);
+    assert.equal(options.headers.get('Origin'), null);
+    assert.equal(options.headers.get('Idempotency-Key'), 'same-request');
+    assert.equal(options.redirect, 'manual');
+    assert.deepEqual(await new Response(options.body).json(), { description: 'index' });
+    return Response.json({ id: 'job', status: 'pending' }, { status: 202, headers: { 'Set-Cookie': 'not-forwarded' } });
+  };
+  const response = await worker.fetch(request('/api/ingest-jobs', { method: 'POST', headers: { Origin: origin, Cookie: 'private-site-session', Authorization: 'browser-token', 'Content-Type': 'application/json', 'Idempotency-Key': 'same-request' }, body: JSON.stringify({ description: 'index' }) }), env);
+  assert.equal(response.status, 202); assert.equal(response.headers.get('Set-Cookie'), null); assert.equal(upstreamCalls, 1);
+  assert.equal((await worker.fetch(request('/api/documents', { method: 'POST', headers: { 'Content-Length': '999999999' } }), env)).status, 413);
+  assert.equal(upstreamCalls, 1);
+  globalThis.fetch = async () => new Response(null, { status: 302, headers: { Location: 'https://other.example' } });
+  assert.equal((await worker.fetch(request('/api/status'), env)).status, 502);
+  globalThis.fetch = async () => Response.json({ html: '<h1>Review</h1>', policy: "default-src 'none'" });
+  const review = await worker.fetch(request('/review'), env);
+  assert.equal(await review.text(), '<h1>Review</h1>');
+  assert.equal(review.headers.get('Content-Security-Policy'), "default-src 'none'");
+} finally { globalThis.fetch = originalFetch; }
+console.log('Worker verified: assets, connection state, route allowlist, origins, private credentials, upload limit, no redirects, review page.');

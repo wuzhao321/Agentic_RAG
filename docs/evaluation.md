@@ -71,7 +71,7 @@ kb eval-rag --final
 
 ## Agent 数据与审核
 
-首批文件为 agent_tasks_40.jsonl，新任务复测文件为 agent_tasks_retest_20.jsonl。字段示例：
+主任务集和复测任务集路径见 `configs/eval.yaml`。JSONL 字段示例：
 
 ```json
 {"id":"agent-example-001","question":"演示项目由谁负责？","expected_tools":["ProjectQueryTool"],"expected_args":[{"project_name":"演示项目","fields":["owner"]}],"answer_points":["测试负责人"]}
@@ -82,7 +82,7 @@ id 可省略并按问题生成。工具名、参数列表必须对应，预期�
 
 工具选择按顺序比较；参数经各工具 schema 规范化，例如 Decimal 的 100 与 100.00、可选字段缺省与 null 视为等价。
 选错工具时参数比较为 null，单独报告 parameter_unknown_n。
-参数错误率为已发现错误任务数 / 总任务数；存在未知项时只是下界，不能判断 ≤5% 达标。
+参数错误率为已发现错误任务数除以总任务数。存在未知项时，该比值是错误率的下界。
 超步数和执行异常保存最后可见状态；选错工具、参数错误和工具异常自动归因，检索/生成错误与任务完成由人工审核。
 
 复制运行目录的 reviews.template.jsonl 并填写：
@@ -127,12 +127,12 @@ RAGAS 在同一事件循环中复用异步客户端，避免逐题评分后关�
 用浏览器打开 `data/review/public-v1/review.html`，逐题检查并导出 `qa-reviews.json`。
 审核内容包括问题明确性、答案正确性、证据充分性、题型、重复题、同源题与无答案判定。
 页面保存审批和备注；需要改题时先修改候选 JSONL，再生成页面并重新审核该版本。
-未经审核不能把“来源逐字匹配”写成“业务审核通过”。
+逐字匹配检查答案出处，审核另行确认答案和证据是否充分。
 
-全部 200 题批准且填写审核人后：
+审核者批准全部候选并填写署名后，在项目目录执行：
 
 ```bash
-uv run --no-sync python scripts/import_qa_reviews.py /实际路径/qa-reviews.json
+uv run --no-sync python scripts/import_qa_reviews.py .local/qa-reviews.json
 uv run --no-sync kb split-eval data/eval/qa_all.jsonl
 ```
 
@@ -145,7 +145,7 @@ uv run --no-sync kb split-eval data/eval/qa_all.jsonl
 工具参数按严格规范化相等比较；同义检索词和项目简称也可能被标记不一致，应结合人工审核解释，
 不得把严格字符串匹配率直接称为业务完成率。
 
-Dify 的部署、配置快照和评估步骤见 [Dify 对照步骤](dify.md)。
+Dify 的部署、配置快照和评估步骤见 [Dify 接入与评估](dify.md)。
 
 ## 裁判人工复核
 
@@ -156,7 +156,7 @@ A/D 各10条裁判抽样（固定种子42），保存在 `data/review/public-v1/
 完成20条后导入：
 
 ```bash
-kb review-judge data/review/public-v1/judge_review_20.jsonl /实际路径/judge-reviews.json
+kb review-judge data/review/public-v1/judge_review_20.jsonl .local/judge-reviews.json
 ```
 
 一致率预定义为人工与自动分数绝对差不超过0.20的占比，同时报告平均绝对差和样本数。

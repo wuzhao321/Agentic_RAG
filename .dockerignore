@@ -1,0 +1,13 @@
+*
+!pyproject.toml
+!uv.lock
+!requirements-backend.txt
+!src/
+!src/**
+!configs/
+!configs/**
+!scripts/
+!scripts/download_models.py
+!scripts/bootstrap_hosted.py
+**/__pycache__
+**/*.pyc

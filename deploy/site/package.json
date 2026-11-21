@@ -1,0 +1,1 @@
+{"name":"zhixu-rag-site","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","dev":"node scripts/preview.mjs"}}

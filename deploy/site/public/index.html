@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="知序 RAG 知识工作台：知识问答、证据检索、Agent 与文档入库。">
+  <title>知序 · RAG 知识工作台</title><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="知序首页"><span class="brandmark">知</span><span>知序<small>知识工作台</small></span></a>
+  <button id="new-chat" class="new-chat">＋ 新建会话</button>
+  <nav aria-label="工作空间">
+    <button class="nav active" data-view="chat" aria-current="page">知识助手</button>
+    <button class="nav" data-view="library">文档与台账 <span id="doc-count"></span></button>
+    <button class="nav" data-view="tasks">入库任务</button>
+    <button class="nav" data-view="evaluation">评估与来源</button>
+  </nav>
+  <div class="sidebar-bottom"><span class="sidebar-label">RAG WORKSPACE</span><p>把分散的文档，变成可追溯的知识。</p><span id="runtime-model">等待连接知识库</span></div>
+</aside>
+<main>
+  <header><div>工作空间 <span class="slash">/</span> <strong id="breadcrumb">知识助手</strong></div><button id="connection" class="connection" title="重新检查连接">检查连接中</button></header>
+  <div id="connection-notice" class="connection-notice hidden" role="status"></div>
+  <section id="chat-view" class="view">
+    <div class="eyebrow">KNOWLEDGE, WITH EVIDENCE</div><h1>让知识，成为答案<span>。</span></h1><p class="subtitle">连接已有知识库，从技术文档到项目台账，每个答案都有据可查。</p>
+    <div id="stats" class="stats"><div class="stat"><strong>—</strong><span>知识文档</span></div><div class="stat"><strong>—</strong><span>检索片段</span></div><div class="stat"><strong>—</strong><span>台账项目</span></div><div class="stat"><strong>—</strong><span>索引状态</span></div></div>
+    <div class="workspace">
+      <div class="conversation">
+        <div class="panel-head"><span>知识助手</span><span class="meta">答案 · 引用 · 执行过程</span></div>
+        <div id="messages" aria-live="polite"><div id="welcome"><div class="welcome-symbol">知</div><h2>今天想了解什么？</h2><p>选择一种方式，开始探索知识库。</p><div id="examples"></div></div></div>
+        <form id="composer">
+          <div class="mode-tabs" aria-label="问答方式"><button type="button" class="selected" data-mode="rag" aria-pressed="true">知识问答</button><button type="button" data-mode="agent" aria-pressed="false">Agent 助手</button><button type="button" data-mode="search" aria-pressed="false">检索证据</button></div>
+          <label class="sr-only" for="question">输入你的问题</label><textarea id="question" maxlength="2000" rows="3" placeholder="例如：FastAPI 中如何把查询参数设置为必选？"></textarea>
+          <div class="composer-foot"><span id="mode-hint">多轮问答 · 回答附原文引用</span><button type="submit" id="send" class="primary" disabled>发送</button></div>
+        </form><p class="footnote">模型回答请结合原文核对。检索证据模式不调用生成模型。</p>
+      </div>
+      <aside class="evidence-panel"><div class="panel-head">证据与执行记录</div><div id="evidence"><div class="empty-evidence"><h3>答案背后的依据</h3><p>提问后，在这里查看检索片段、原始来源和工具调用。</p></div></div></aside>
+    </div>
+  </section>
+  <section id="library-view" class="view hidden">
+    <div class="eyebrow">YOUR KNOWLEDGE COLLECTION</div><h1>文档与项目台账</h1><p class="subtitle">保留已有知识库，持续加入新的 PDF 和 Word 文档。</p>
+    <div class="toolbar"><div><button id="open-upload" class="primary" disabled>上传文档</button><button class="secondary submit-job" disabled>更新知识索引</button></div><span class="meta">上传后更新索引，新文档才会参与检索。</span></div>
+    <form id="document-filter" class="filters"><label>项目名称<input id="filter-project" maxlength="200" placeholder="精确匹配项目名称"></label><label>文档类型<select id="filter-type"><option value="">全部类型</option><option>技术规范</option><option>交付报告</option><option>接口说明书</option><option>其他</option></select></label><button class="secondary">筛选</button></form>
+    <div class="table-scroll"><table><thead><tr><th>文档</th><th>项目 / 类型</th><th>大小</th><th>操作</th></tr></thead><tbody id="documents"><tr><td colspan="4" class="empty-cell">连接知识库后显示已有文档</td></tr></tbody></table></div>
+    <div class="pagination"><span id="page-label">—</span><div><button id="prev-page" class="secondary" disabled>上一页</button><button id="next-page" class="secondary" disabled>下一页</button></div></div>
+    <h2 class="section-title">项目台账</h2><div class="table-scroll"><table><thead><tr><th>项目</th><th>签订日期</th><th>金额（元）</th><th>供应商</th><th>来源</th></tr></thead><tbody id="projects"><tr><td colspan="5" class="empty-cell">等待连接</td></tr></tbody></table></div>
+  </section>
+  <section id="tasks-view" class="view hidden">
+    <div class="eyebrow">DOCUMENTS INTO KNOWLEDGE</div><h1>入库任务</h1><p class="subtitle">文档解析、分块、向量化与索引发布，都有进度可查。</p>
+    <div class="toolbar"><button class="primary submit-job" disabled>更新知识索引</button><button id="refresh-jobs" class="secondary">刷新任务</button></div>
+    <div class="notice compact">新索引成功后才会切换；任务失败时，已有知识库仍可使用。失败或中断的任务可以手动重试。</div>
+    <div id="jobs" class="job-list"><div class="notice">连接知识库后显示任务记录。</div></div>
+  </section>
+  <section id="evaluation-view" class="view hidden">
+    <div class="eyebrow">EVIDENCE BEFORE METRICS</div><h1>评估与来源</h1><p class="subtitle">展示项目已有评估记录，区分证据检查、模型评估与人工验收。</p>
+    <div id="review"><div class="notice">连接知识库后读取已有记录。</div></div>
+    <div class="notice"><h3>检索与问答链路</h3><p id="runtime">等待读取运行配置。</p><p>知识问答返回引用；Agent 可检索知识、总结文档和筛选项目台账。</p></div>
+  </section>
+</main>
+<dialog id="upload-dialog"><form id="upload-form"><div class="dialog-head"><h2>上传知识文档</h2><button type="button" id="close-upload" class="secondary">关闭</button></div><p class="subtitle">支持 PDF / DOCX，单个文件不超过 20 MB。</p><label>文档文件<input type="file" name="file" accept=".pdf,.docx" required></label><label>项目名称<input name="project_name" maxlength="200" required placeholder="例如：后端技术知识库"></label><div class="form-row"><label>文档类型<select name="doc_type"><option>技术规范</option><option>交付报告</option><option>接口说明书</option><option>其他</option></select></label><label>项目编号（可选）<input name="project_id" maxlength="100"></label></div><p id="upload-error" class="error-text" role="alert"></p><button id="upload-submit" class="primary" type="submit">上传文档</button></form></dialog>
+<div id="toast" class="toast hidden" role="status"></div><script src="/app.js" defer></script>
+</body></html>

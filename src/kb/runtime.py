@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-from kb.config import load_config
+from kb.config import load_config, resolve_model_path
 from kb.ingest.indexer import read_chunks
 from kb.retrieval.bm25 import BM25Index
 from kb.retrieval.pipeline import RetrievalPipeline
@@ -59,11 +59,16 @@ def make_retrieval(root: Path = Path("."), retrieval_config: dict | None = None)
     manifest = json.loads((index / "active.json").read_text(encoding="utf-8"))
     if manifest["embedding"] != ingest["embedding"]:
         raise ValueError("当前 embedding 配置与索引不一致，请重新入库")
-    chunks = read_chunks(index)
+    chunks = read_chunks(index, manifest)
     collection = open_collection(index / "chroma", manifest["collection"], ingest["chroma"])
-    vector = VectorIndex(collection, LocalEmbedding(ingest["embedding"]), retrieval)
+    embedding = LocalEmbedding(resolve_model_path(ingest["embedding"], root))
+    vector = VectorIndex(collection, embedding, retrieval)
     bm25 = BM25Index(chunks, root / ingest["domain_dictionary"])
-    reranker = Reranker(retrieval["reranker"]) if retrieval["mode"] in {"C", "D"} else None
+    reranker = (
+        Reranker(resolve_model_path(retrieval["reranker"], root))
+        if retrieval["mode"] in {"C", "D"}
+        else None
+    )
     projects = sorted(
         {str(c.metadata["project_name"]) for c in chunks if c.metadata["project_name"]}
     )

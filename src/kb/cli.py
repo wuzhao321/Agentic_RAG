@@ -33,6 +33,52 @@ def doctor():
     output(inspect_setup())
 
 
+@app.command("backend-init")
+def backend_init(skip_import: bool = False):
+    """迁移后端 PostgreSQL 表结构，并导入现有文档登记表。"""
+    from kb.backend.db import make_engine, migrate, sessions_for
+    from kb.backend.service import import_registry
+    from kb.backend.settings import load_settings
+    from kb.locking import file_lock
+
+    settings = load_settings()
+    engine = make_engine(settings)
+    try:
+        with file_lock(settings.index_dir / ".worker.lock"):
+            migrate(engine)
+            count = 0 if skip_import else import_registry(sessions_for(engine), settings)
+        output({"migrated": True, "imported_documents": count})
+    finally:
+        engine.dispose()
+
+
+@app.command()
+def api():
+    """启动知识库 API，默认仅本机；远程监听需配置服务凭证。"""
+    import uvicorn
+
+    from kb.backend.api import create_app
+    from kb.backend.settings import load_settings
+
+    settings = load_settings()
+    uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
+
+
+@app.command()
+def worker(once: bool = False):
+    """处理持久化入库任务；--once 最多处理一个任务后退出。"""
+    from kb.backend.db import make_engine, sessions_for
+    from kb.backend.settings import load_settings
+    from kb.backend.worker import run_worker
+
+    settings = load_settings()
+    engine = make_engine(settings)
+    try:
+        run_worker(settings, sessions_for(engine), once=once)
+    finally:
+        engine.dispose()
+
+
 @app.command("eval-rag")
 def eval_rag(final: bool = False, grid: bool = False):
     """运行 A–D 或 --grid 调参；--final 一次性运行留出集 A/D。会调用云端模型。"""

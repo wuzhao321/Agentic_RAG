@@ -29,6 +29,7 @@ Linux/Windows 的 PyTorch 使用 CPU 包源，macOS 使用标准 PyTorch 包；�
 | `configs/agent.yaml` | 工具推理、会话摘要与模型参数 |
 | `configs/eval.yaml` | 数据划分、评估路径与指标配置 |
 | `configs/demo.yaml` | 网页端口、本地模型与演示检索覆盖项 |
+| `configs/backend.yaml` | API 端口、上传大小和入库 Worker 配置 |
 
 ## 接入 PDF / DOCX
 
@@ -56,6 +57,7 @@ DEEPSEEK_MODEL=deepseek-flash
 保存后重启正在运行的命令或服务即可生效。不要把密钥写入源码或提交到 Git。
 如需切换 DashScope，设置 `LLM_PROVIDER=dashscope` 并填写相应密钥和模型名。
 凭据文件由 Git 忽略。云端命令将问题和相关证据发送到配置的模型接口。
+HTTP 上传、数据库设置与任务管理见 [后端服务](backend.md)。
 
 ```bash
 uv run --no-sync kb ask 'CreateOrder 的 timeout_ms 是多少？'
@@ -116,5 +118,3 @@ uv run --no-sync ruff format --check src scripts tests
 
 目录中的 `.gitkeep` 仅用于保留必要的空目录。新增个人记录应放在 `.local/`，
 技术文档描述可复现的配置与操作方法，具体运行指标和阶段结论保存在本地报告中。
-如果文件已经被 Git 跟踪，仅添加忽略规则不会取消跟踪；使用 `git rm --cached -- <文件路径>`
-从后续提交移除跟踪并保留本地文件。此操作不清除历史提交中的内容。
