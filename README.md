@@ -12,6 +12,12 @@ Agentic_RAG 将 PDF、Word 文档和项目台账接入同一知识库，支持�
 - 通过 FastAPI 上传和查询文档，以 PostgreSQL 保存入库任务。独立 Worker 支持幂等提交、进度查询和失败重试。
 - 通过本地工作台或 Sites 前端访问知识库，并使用评估工具检查检索、问答和 Agent 工具调用。
 
+以公开 FastAPI 文档为例，左侧是带来源编号的回答，右侧是引用的原文和代码示例。
+
+![RAG 回答与引用证据并排展示](https://raw.githubusercontent.com/wuzhao321/Agentic_RAG/3a8df1247689472f54063b561041bc197f37dc28/docs/assets/rag-answer-evidence.jpg)
+
+[![观看 42 秒演示，查看从提问到核对原文的过程](https://raw.githubusercontent.com/wuzhao321/Agentic_RAG/3a8df1247689472f54063b561041bc197f37dc28/docs/assets/rag-demo-cover.jpg)](https://github.com/wuzhao321/Agentic_RAG/raw/3a8df1247689472f54063b561041bc197f37dc28/docs/assets/rag-demo.mp4)
+
 ## 项目结构
 
 | 路径 | 内容 |
