@@ -1,0 +1,8 @@
+# Optional document API dependencies. Install after uv sync --locked.
+# Keep the existing RAG environment and its uv.lock independently reproducible.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+python-multipart>=0.0.20,<1
+sqlalchemy>=2.0,<3
+psycopg[binary]>=3.2,<4
+alembic>=1.14,<2

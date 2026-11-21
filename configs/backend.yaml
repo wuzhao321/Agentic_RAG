@@ -1,0 +1,4 @@
+port: 8780
+max_upload_bytes: 20971520
+max_unpacked_bytes: 104857600
+poll_interval_seconds: 1.0

@@ -6,13 +6,43 @@ jobs:
     env:
       LANGSMITH_TRACING: 'false'
       RAGAS_DO_NOT_TRACK: 'true'
+      KB_TEST_DATABASE_URL: postgresql+psycopg://kb:kb_test@127.0.0.1:5432/kb_test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: kb
+          POSTGRES_PASSWORD: kb_test
+          POSTGRES_DB: kb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kb -d kb_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: '3.11'
       - run: uv sync --locked --extra eval
+      - run: uv pip install -r requirements-backend.txt
       - run: uv run --no-sync python -c "import ragas"
       - run: uv run --no-sync ruff check src scripts tests
       - run: uv run --no-sync ruff format --check src scripts tests
       - run: uv run --no-sync pytest -q
+      - name: Install the pinned CPU retrieval models
+        if: startsWith(github.ref, 'refs/heads/ci/backend-acceptance-')
+        run: |
+          uv sync --locked --extra eval --extra models
+          uv pip install -r requirements-backend.txt
+          uv run --no-sync python scripts/download_models.py
+      - name: Exercise PostgreSQL, the HTTP API and the independent BGE worker
+        if: startsWith(github.ref, 'refs/heads/ci/backend-acceptance-')
+        env:
+          KB_TEST_REAL_BGE: '1'
+          HF_HUB_OFFLINE: '1'
+          TOKENIZERS_PARALLELISM: 'false'
+          OMP_NUM_THREADS: '2'
+        run: uv run --no-sync pytest -q -s tests/test_backend.py::test_five_http_endpoints_and_upload_validation

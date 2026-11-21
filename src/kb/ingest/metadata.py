@@ -32,6 +32,8 @@ def scan(raw: Path, registry: Path, config: dict) -> list[dict]:
             existing = {row["file_name"]: row for row in csv.DictReader(f)}
     rows = []
     for path in sorted(raw.rglob("*")):
+        if path.relative_to(raw).parts[0] == ".backend_uploads":
+            continue
         if path.suffix.lower() not in {".pdf", ".docx"} or not path.is_file():
             continue
         name = path.relative_to(raw).as_posix()
